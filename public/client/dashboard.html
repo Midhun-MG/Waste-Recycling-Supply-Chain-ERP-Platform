@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shop Dashboard — GreenCycle</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+</head>
+
+<body>
+    <div class="bg-gradient"></div>
+
+    <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2>♻️ GreenCycle</h2>
+                <span>Shop Owner Portal</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="showSection('dashboard', this)">
+                    <span class="nav-icon">📊</span> Dashboard
+                </div>
+                <div class="nav-item" onclick="showSection('new-request', this)">
+                    <span class="nav-icon">📦</span> New Pickup Request
+                </div>
+                <div class="nav-item" onclick="showSection('my-requests', this)">
+                    <span class="nav-icon">📋</span> My Requests
+                </div>
+                <div class="nav-item" onclick="showSection('profile', this)">
+                    <span class="nav-icon">👤</span> Profile
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">R</div>
+                    <div class="user-details">
+                        <h4 id="userName">Shop Owner</h4>
+                        <span>🏪 Client</span>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- ===== DASHBOARD SECTION ===== -->
+            <section id="section-dashboard">
+                <div class="page-header">
+                    <h1>Welcome back, <span id="welcomeName">Shop Owner</span>! 👋</h1>
+                    <p>Here's your recycling activity overview</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">📦</div>
+                        <div class="stat-value" id="statTotal">0</div>
+                        <div class="stat-label">Total Requests</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">⏳</div>
+                        <div class="stat-value" id="statPending">0</div>
+                        <div class="stat-label">Pending</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-value" id="statCompleted">0</div>
+                        <div class="stat-label">Completed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">♻️</div>
+                        <div class="stat-value" id="statKg">0</div>
+                        <div class="stat-label">Kg Recycled</div>
+                    </div>
+                </div>
+
+                <h2 style="font-size:20px; margin-bottom:16px;">Recent Requests</h2>
+                <div id="recentRequests">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- ===== NEW REQUEST SECTION ===== -->
+            <section id="section-new-request" style="display:none;">
+                <div class="page-header">
+                    <h1>📦 New Pickup Request</h1>
+                    <p>Schedule a waste pickup from your shop</p>
+                </div>
+
+                <div class="glass-card-static" style="max-width:600px;">
+                    <form id="newRequestForm">
+                        <div class="form-group">
+                            <label>Waste Type</label>
+                            <select class="form-input" id="wasteType" required>
+                                <option value="">Select waste type</option>
+                                <option value="vegetables">🥬 Vegetables</option>
+                                <option value="fruits">🍎 Fruits</option>
+                                <option value="mixed">🥗 Mixed (Vegetables + Fruits)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Estimated Quantity (in kg)</label>
+                            <input type="number" class="form-input" id="quantity" placeholder="e.g. 25" min="1"
+                                max="5000" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Description (optional)</label>
+                            <textarea class="form-input" id="description"
+                                placeholder="e.g., Leftover tomatoes and spinach from today's stock"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Pickup Address</label>
+                            <input type="text" class="form-input" id="pickupAddress" placeholder="Your shop address">
+                        </div>
+                        <div class="form-group">
+                            <label>📍 Pickup Location (click map to adjust)</label>
+                            <div id="requestMap" class="map-container"></div>
+                        </div>
+                        <button type="submit" class="btn btn-primary" style="width:100%; padding:16px; font-size:16px;">
+                            🚀 Submit Pickup Request
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            <!-- ===== MY REQUESTS SECTION ===== -->
+            <section id="section-my-requests" style="display:none;">
+                <div class="page-header">
+                    <h1>📋 My Requests</h1>
+                    <p>View and manage all your waste pickup requests</p>
+                </div>
+
+                <div class="section-tabs">
+                    <button class="section-tab active" onclick="filterRequests('all')">All</button>
+                    <button class="section-tab" onclick="filterRequests('pending')">Pending</button>
+                    <button class="section-tab" onclick="filterRequests('assigned')">Assigned</button>
+                    <button class="section-tab" onclick="filterRequests('completed')">Completed</button>
+                </div>
+
+                <div id="requestsList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- ===== PROFILE SECTION ===== -->
+            <section id="section-profile" style="display:none;">
+                <div class="page-header">
+                    <h1>👤 My Profile</h1>
+                    <p>Your account information</p>
+                </div>
+
+                <div class="glass-card-static" style="max-width: 500px;">
+                    <div id="profileInfo">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/api.js"></script>
+    <script>
+        // ===== AUTH CHECK =====
+        const currentUser = requireAuth('client');
+        if (!currentUser) { window.location.href = '/login.html'; }
+
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('welcomeName').textContent = currentUser.name.split(' ')[0];
+        document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+
+        // ===== SOCKET.IO =====
+        const socket = io();
+        socket.emit('join', { role: 'client', userId: currentUser.id, name: currentUser.name });
+
+        socket.on('request_update', (data) => {
+            showToast(`Your pickup request #${data.requestId} is now "${data.status}" — Driver: ${data.driverName}`, 'success');
+            loadStats();
+            loadRequests();
+        });
+
+        // ===== NAVIGATION =====
+        function showSection(name, el) {
+            document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+            document.getElementById(`section-${name}`).style.display = 'block';
+
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (el) el.classList.add('active');
+
+            // Close mobile sidebar
+            document.querySelector('.sidebar').classList.remove('open');
+
+            if (name === 'new-request') initRequestMap();
+            if (name === 'my-requests') loadRequests();
+            if (name === 'profile') loadProfile();
+        }
+
+        // ===== STATS =====
+        async function loadStats() {
+            try {
+                const data = await api('/api/client/profile');
+                const s = data.stats || {};
+                document.getElementById('statTotal').textContent = s.total || 0;
+                document.getElementById('statPending').textContent = s.pending || 0;
+                document.getElementById('statCompleted').textContent = s.completed || 0;
+                document.getElementById('statKg').textContent = s.total || 0;
+            } catch (err) {
+                console.error('Stats error:', err);
+            }
+        }
+
+        // ===== REQUESTS =====
+        let allRequests = [];
+
+        async function loadRequests() {
+            try {
+                const data = await api('/api/client/pickups');
+                allRequests = data.requests;
+                renderRequests(allRequests);
+
+                // Also render recent on dashboard
+                const recent = allRequests.slice(0, 5);
+                renderRecentRequests(recent);
+            } catch (err) {
+                console.error('Requests error:', err);
+            }
+        }
+
+        function renderRequests(requests) {
+            const container = document.getElementById('requestsList');
+            if (requests.length === 0) {
+                container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">📭</div>
+            <h3>No requests found</h3>
+            <p>Create your first waste pickup request to get started</p>
+          </div>
+        `;
+                return;
+            }
+
+            container.innerHTML = `
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Status</th>
+                <th>Driver</th>
+                <th>Date</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${requests.map(r => `
+                <tr>
+                  <td>#${r.id}</td>
+                  <td>${wasteIcon(r.waste_type)} ${r.waste_type}</td>
+                  <td>${r.quantity_kg} kg</td>
+                  <td>${statusBadge(r.status)}</td>
+                  <td>${r.driver_name || '-'}</td>
+                  <td>${formatDate(r.created_at)}</td>
+                  <td>
+                    ${r.status === 'pending' ? `<button class="btn btn-danger btn-sm" onclick="cancelRequest(${r.id})">Cancel</button>` : ''}
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+        }
+
+        function renderRecentRequests(requests) {
+            const container = document.getElementById('recentRequests');
+            if (requests.length === 0) {
+                container.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon">🌱</div>
+            <h3>No pickups yet</h3>
+            <p>Create your first waste pickup request!</p>
+          </div>
+        `;
+                return;
+            }
+
+            container.innerHTML = `
+        <div class="table-container">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Type</th>
+                <th>Quantity</th>
+                <th>Status</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${requests.map(r => `
+                <tr>
+                  <td>#${r.id}</td>
+                  <td>${wasteIcon(r.waste_type)} ${r.waste_type}</td>
+                  <td>${r.quantity_kg} kg</td>
+                  <td>${statusBadge(r.status)}</td>
+                  <td>${formatDate(r.created_at)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+        }
+
+        function filterRequests(status) {
+            document.querySelectorAll('.section-tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (status === 'all') {
+                renderRequests(allRequests);
+            } else {
+                renderRequests(allRequests.filter(r => r.status === status));
+            }
+        }
+
+        async function cancelRequest(id) {
+            if (!confirm('Are you sure you want to cancel this request?')) return;
+            try {
+                await api(`/api/client/pickup/${id}/cancel`, { method: 'PUT' });
+                showToast('Request cancelled', 'success');
+                loadRequests();
+                loadStats();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        // ===== NEW REQUEST MAP =====
+        let requestMap, requestMarker;
+        let requestLat = 11.0168, requestLng = 76.9558;
+
+        function initRequestMap() {
+            if (requestMap) {
+                setTimeout(() => requestMap.invalidateSize(), 200);
+                return;
+            }
+
+            requestMap = L.map('requestMap').setView([11.0168, 76.9558], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(requestMap);
+
+            requestMarker = L.marker([11.0168, 76.9558], { draggable: true }).addTo(requestMap);
+
+            requestMap.on('click', (e) => {
+                requestLat = e.latlng.lat;
+                requestLng = e.latlng.lng;
+                requestMarker.setLatLng(e.latlng);
+                // Reverse geocode to fill address
+                reverseGeocode(requestLat, requestLng);
+            });
+
+            requestMarker.on('dragend', () => {
+                const pos = requestMarker.getLatLng();
+                requestLat = pos.lat;
+                requestLng = pos.lng;
+                reverseGeocode(requestLat, requestLng);
+            });
+
+            // Geocode when typing address
+            let geoTimer;
+            document.getElementById('pickupAddress').addEventListener('input', (e) => {
+                clearTimeout(geoTimer);
+                const query = e.target.value.trim();
+                if (query.length < 3) return;
+                geoTimer = setTimeout(() => geocodeAddress(query), 800);
+            });
+
+            setTimeout(() => requestMap.invalidateSize(), 300);
+        }
+
+        async function geocodeAddress(query) {
+            try {
+                const searchQuery = query.includes('Coimbatore') ? query : query + ', Coimbatore, Tamil Nadu, India';
+                const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`);
+                const results = await resp.json();
+                if (results.length > 0) {
+                    const lat = parseFloat(results[0].lat);
+                    const lng = parseFloat(results[0].lon);
+                    requestLat = lat;
+                    requestLng = lng;
+                    requestMarker.setLatLng([lat, lng]);
+                    requestMap.setView([lat, lng], 15);
+                    showToast(`📍 Location pinned: ${results[0].display_name.split(',').slice(0, 3).join(',')}`, 'info');
+                }
+            } catch (err) {
+                console.error('Geocode error:', err);
+            }
+        }
+
+        async function reverseGeocode(lat, lng) {
+            try {
+                const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const result = await resp.json();
+                if (result.display_name) {
+                    document.getElementById('pickupAddress').value = result.display_name.split(',').slice(0, 4).join(',');
+                }
+            } catch (err) { /* silent */ }
+        }
+
+        // ===== SUBMIT NEW REQUEST =====
+        document.getElementById('newRequestForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = '⏳ Submitting...';
+
+            try {
+                const result = await api('/api/client/pickup', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        waste_type: document.getElementById('wasteType').value,
+                        quantity_kg: parseFloat(document.getElementById('quantity').value),
+                        description: document.getElementById('description').value
+                    })
+                });
+
+                // Show success feedback
+                showToast(result.message || 'Pickup request created!', 'success');
+                e.target.reset();
+                loadStats();
+                loadRequests();
+
+                // Switch to my requests
+                document.querySelectorAll('.nav-item')[2].click();
+            } catch (err) {
+                showToast(err.message, 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 Submit Pickup Request';
+            }
+        });
+
+        // ===== PROFILE =====
+        async function loadProfile() {
+            try {
+                const data = await api('/api/auth/me');
+                const u = data.user;
+                document.getElementById('profileInfo').innerHTML = `
+          <div style="text-align:center; margin-bottom:24px;">
+            <div class="user-avatar" style="width:64px;height:64px;font-size:28px;margin:0 auto 12px;">
+              ${u.name.charAt(0).toUpperCase()}
+            </div>
+            <h2 style="font-size:22px;">${u.name}</h2>
+            ${u.shop_name ? `<p style="font-size:14px; color:var(--text-secondary); margin-top:4px;">🏪 ${u.shop_name}</p>` : ''}
+            <span class="badge badge-completed" style="margin-top:8px;">🏪 Shop Owner</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div><label style="font-size:12px;color:var(--text-muted);text-transform:uppercase;">Shop Name</label><p style="font-size:15px;">${u.shop_name || 'Not set'}</p></div>
+            <div><label style="font-size:12px;color:var(--text-muted);text-transform:uppercase;">Email</label><p style="font-size:15px;">${u.email}</p></div>
+            <div><label style="font-size:12px;color:var(--text-muted);text-transform:uppercase;">Phone</label><p style="font-size:15px;">${u.phone || 'Not set'}</p></div>
+            <div><label style="font-size:12px;color:var(--text-muted);text-transform:uppercase;">Address</label><p style="font-size:15px;">${u.address || 'Not set'}</p></div>
+            <div><label style="font-size:12px;color:var(--text-muted);text-transform:uppercase;">Pincode</label><p style="font-size:15px;">${u.pincode || 'Not set'}</p></div>
+            <div><label style="font-size:12px;color:var(--text-muted);text-transform:uppercase;">Member Since</label><p style="font-size:15px;">${formatDate(u.created_at)}</p></div>
+          </div>
+        `;
+            } catch (err) {
+                showToast('Failed to load profile', 'error');
+            }
+        }
+
+        // ===== INITIAL LOAD =====
+        loadStats();
+        loadRequests();
+    </script>
+</body>
+
+</html>

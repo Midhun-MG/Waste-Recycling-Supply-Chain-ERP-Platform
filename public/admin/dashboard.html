@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin — GreenCycle</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .live-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+            margin-right: 6px;
+        }
+
+        .pipeline-flow {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 30px;
+        }
+
+        .pipeline-stage {
+            padding: 20px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            text-align: center;
+            position: relative;
+        }
+
+        .pipeline-stage::after {
+            content: '→';
+            position: absolute;
+            right: -14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            color: var(--text-muted);
+        }
+
+        .pipeline-stage:last-child::after {
+            display: none;
+        }
+
+        .pipeline-stage .stage-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .pipeline-stage .stage-name {
+            font-size: 13px;
+            color: var(--text-secondary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pipeline-stage .stage-count {
+            font-size: 28px;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin: 4px 0;
+        }
+
+        .pipeline-stage .stage-detail {
+            font-size: 11px;
+            color: var(--text-muted);
+        }
+
+        .inv-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .inv-table th,
+        .inv-table td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .inv-table th {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .cost-card {
+            padding: 24px;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            text-align: center;
+        }
+
+        .cost-card .cost-value {
+            font-size: 32px;
+            font-weight: 800;
+        }
+
+        .cost-card .cost-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .cost-card.profit .cost-value {
+            color: #22c55e;
+        }
+
+        .cost-card.loss .cost-value {
+            color: #ef4444;
+        }
+
+        .cost-card.investment .cost-value {
+            color: #3b82f6;
+        }
+
+        .investment-form {
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            margin-bottom: 24px;
+        }
+
+        .investment-form .form-group {
+            flex: 1;
+        }
+
+        .recipe-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .recipe-chip {
+            display: inline-block;
+            background: rgba(34, 197, 94, 0.1);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+        }
+
+        .timer-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .timer-running {
+            background: rgba(59, 130, 246, 0.15);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        .timer-done {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+
+        .timer-bar {
+            height: 4px;
+            border-radius: 2px;
+            background: rgba(255, 255, 255, 0.1);
+            margin-top: 6px;
+            overflow: hidden;
+        }
+
+        .timer-fill {
+            height: 100%;
+            border-radius: 2px;
+            background: linear-gradient(90deg, #3b82f6, #22c55e);
+            transition: width 1s linear;
+        }
+
+        @media (max-width: 800px) {
+            .pipeline-flow {
+                grid-template-columns: 1fr;
+            }
+
+            .pipeline-stage::after {
+                content: '↓';
+                right: auto;
+                bottom: -14px;
+                top: auto;
+                left: 50%;
+                transform: translateX(-50%);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-gradient"></div>
+    <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2>♻️ GreenCycle</h2>
+                <span>👑 Admin Panel</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="showSection('dashboard', this)">
+                    <span class="nav-icon">📊</span> Pipeline Overview
+                </div>
+                <div class="nav-item" onclick="showSection('investment', this)">
+                    <span class="nav-icon">💰</span> Investment
+                </div>
+                <div class="nav-item" onclick="showSection('production', this)">
+                    <span class="nav-icon">🏭</span> Production
+                </div>
+                <div class="nav-item" onclick="showSection('packing', this)">
+                    <span class="nav-icon">📦</span> Packing
+                </div>
+                <div class="nav-item" onclick="showSection('costs', this)">
+                    <span class="nav-icon">💵</span> Cost Analysis
+                </div>
+                <div class="nav-item" onclick="showSection('feedback', this)">
+                    <span class="nav-icon">💬</span> Feedback <span id="fbBadge"
+                        style="background:#ef4444;color:#fff;padding:1px 6px;border-radius:8px;font-size:10px;margin-left:4px;display:none"></span>
+                </div>
+                <div class="nav-item" onclick="showSection('database', this)">
+                    <span class="nav-icon">🗃️</span> Database
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">A</div>
+                    <div class="user-details">
+                        <h4 id="userName">Admin</h4>
+                        <span>👑 Admin / Owner</span>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            <!-- PIPELINE OVERVIEW -->
+            <section id="section-dashboard">
+                <div class="page-header">
+                    <h1>Welcome, <span id="welcomeName">Admin</span>! 👑</h1>
+                    <p><span class="live-dot"></span>Full A-Z pipeline — waste collection to final product</p>
+                </div>
+                <h3 style="margin-bottom:16px; font-size:16px;">🔄 Pipeline Flow</h3>
+                <div class="pipeline-flow" id="pipelineFlow">
+                    <div class="spinner"></div>
+                </div>
+                <div class="stats-grid" id="statsGrid"></div>
+            </section>
+
+            <!-- INVESTMENT -->
+            <section id="section-investment" style="display:none;">
+                <div class="page-header">
+                    <h1>💰 Base Investment</h1>
+                    <p>Set base investment — AI uses this to calculate production costs & pricing</p>
+                </div>
+                <div class="glass-card-static" style="padding:24px;">
+                    <div class="investment-form">
+                        <div class="form-group">
+                            <label>Base Investment Amount (₹)</label>
+                            <input type="number" class="form-input" id="baseInvestment" placeholder="50000" min="0"
+                                step="1000">
+                        </div>
+                        <button class="btn btn-primary" onclick="saveInvestment()">💾 Save</button>
+                    </div>
+                    <p style="font-size:13px; color:var(--text-secondary);">
+                        💡 AI distributes costs proportionally across all production orders.
+                    </p>
+                </div>
+            </section>
+
+            <!-- PRODUCTION -->
+            <section id="section-production" style="display:none;">
+                <div class="page-header">
+                    <h1>🏭 All Production Orders</h1>
+                    <p>⏰ AI-defined timers auto-complete production & send to packing (demo: 360x speed)</p>
+                </div>
+                <div class="glass-card-static" style="overflow-x:auto;">
+                    <div id="productionList">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- PACKING -->
+            <section id="section-packing" style="display:none;">
+                <div class="page-header">
+                    <h1>📦 Packing Department</h1>
+                    <p>Products auto-sent here when production timer expires</p>
+                </div>
+                <div class="glass-card-static" style="overflow-x:auto;">
+                    <div id="packingList">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- COST ANALYSIS -->
+            <section id="section-costs" style="display:none;">
+                <div class="page-header">
+                    <h1>💵 Cost Analysis & ROI</h1>
+                    <p>Financial overview — investment vs costs vs estimated revenue</p>
+                </div>
+                <div id="costAnalysis">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- CUSTOMER FEEDBACK -->
+            <section id="section-feedback" style="display:none;">
+                <div class="page-header">
+                    <h1>💬 Customer Feedback</h1>
+                    <p>View and respond to customer feedback</p>
+                </div>
+                <div id="feedbackList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- DATABASE VIEWER -->
+            <section id="section-database" style="display:none;">
+                <div class="page-header">
+                    <h1>🗃️ Database Tables</h1>
+                    <p>Browse all database tables and their contents</p>
+                </div>
+                <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px" id="tableButtons">
+                    <div class="spinner"></div>
+                </div>
+                <div class="glass-card-static" style="overflow-x:auto;padding:16px" id="tableContent">
+                    <p style="color:var(--text-muted);text-align:center">Select a table above to view its contents</p>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/api.js"></script>
+    <script>
+        const currentUser = requireAuth('admin');
+        if (!currentUser) { window.location.href = '/login.html'; }
+
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('welcomeName').textContent = currentUser.name.split(' ')[0];
+        document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+
+        // Socket.io — auto-refresh when production completes
+        const socket = io();
+        socket.on('production_completed', (data) => {
+            showToast(`⏰ ${data.message}`, 'success');
+            loadPipeline();
+            loadProduction();
+            loadPacking();
+        });
+
+        const DEMO_SPEED = 360;
+        let currentSection = 'dashboard';
+
+        function showSection(name, el) {
+            document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+            document.getElementById(`section-${name}`).style.display = 'block';
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (el) el.classList.add('active');
+            document.querySelector('.sidebar').classList.remove('open');
+            currentSection = name;
+
+            if (name === 'dashboard') loadPipeline();
+            if (name === 'investment') loadInvestment();
+            if (name === 'production') loadProduction();
+            if (name === 'packing') loadPacking();
+            if (name === 'costs') loadCosts();
+            if (name === 'feedback') loadFeedback();
+            if (name === 'database') loadDbTables();
+        }
+
+        // ===== PIPELINE =====
+        async function loadPipeline() {
+            try {
+                const data = await api('/api/admin/pipeline');
+                const p = data.pipeline;
+
+                document.getElementById('pipelineFlow').innerHTML = `
+                    <div class="pipeline-stage">
+                        <div class="stage-icon">📦</div>
+                        <div class="stage-name">Pickups</div>
+                        <div class="stage-count">${p.pickups.pending + p.pickups.assigned + p.pickups.in_transit + p.pickups.completed}</div>
+                        <div class="stage-detail">⏳ ${p.pickups.pending} · 🚛 ${p.pickups.assigned} · 🚗 ${p.pickups.in_transit} · ✅ ${p.pickups.completed}</div>
+                    </div>
+                    <div class="pipeline-stage">
+                        <div class="stage-icon">🏭</div>
+                        <div class="stage-name">Inventory</div>
+                        <div class="stage-count">${p.inventory.received + p.inventory.processing + p.inventory.processed}</div>
+                        <div class="stage-detail">📥 ${p.inventory.received} · 🔄 ${p.inventory.processing} · ✅ ${p.inventory.processed} · ⚖️ ${p.inventory.total_kg}kg</div>
+                    </div>
+                    <div class="pipeline-stage">
+                        <div class="stage-icon">🤖</div>
+                        <div class="stage-name">Production</div>
+                        <div class="stage-count">${p.production.pending + p.production.in_production + p.production.completed}</div>
+                        <div class="stage-detail">⏳ ${p.production.pending} · 🏭 ${p.production.in_production} · ✅ ${p.production.completed}</div>
+                    </div>
+                    <div class="pipeline-stage">
+                        <div class="stage-icon">📦</div>
+                        <div class="stage-name">Packing</div>
+                        <div class="stage-count">${p.packing.pending + p.packing.packing + p.packing.packed + p.packing.dispatched}</div>
+                        <div class="stage-detail">⏳ ${p.packing.pending} · 📦 ${p.packing.packing} · ✅ ${p.packing.packed} · 🚚 ${p.packing.dispatched}</div>
+                    </div>
+                `;
+
+                document.getElementById('statsGrid').innerHTML = `
+                    <div class="stat-card"><div class="stat-icon">💰</div><div class="stat-value">₹${parseInt(data.settings.base_investment || 50000).toLocaleString()}</div><div class="stat-label">Base Investment</div></div>
+                    <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value">₹${(p.production.total_material_cost || 0).toLocaleString()}</div><div class="stat-label">Total Material Cost</div></div>
+                    <div class="stat-card"><div class="stat-icon">💵</div><div class="stat-value">₹${(p.production.total_estimated_revenue || 0).toLocaleString()}</div><div class="stat-label">Est. Revenue</div></div>
+                    <div class="stat-card"><div class="stat-icon">📈</div><div class="stat-value" style="color:${(p.production.total_estimated_revenue - p.production.total_material_cost) >= 0 ? '#22c55e' : '#ef4444'}">₹${((p.production.total_estimated_revenue || 0) - (p.production.total_material_cost || 0)).toLocaleString()}</div><div class="stat-label">Net Profit</div></div>
+                `;
+            } catch (err) { console.error('Pipeline error:', err); }
+        }
+
+        // ===== INVESTMENT =====
+        async function loadInvestment() {
+            try {
+                const data = await api('/api/admin/settings');
+                document.getElementById('baseInvestment').value = data.settings.base_investment || 50000;
+            } catch (err) { console.error('Settings error:', err); }
+        }
+
+        async function saveInvestment() {
+            try {
+                const value = document.getElementById('baseInvestment').value;
+                await api('/api/admin/settings', { method: 'PUT', body: JSON.stringify({ base_investment: value }) });
+                showToast('💰 Base investment updated to ₹' + parseInt(value).toLocaleString(), 'success');
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        // ===== PRODUCTION WITH TIMERS =====
+        async function loadProduction() {
+            try {
+                const data = await api('/api/admin/production');
+                const container = document.getElementById('productionList');
+
+                if (data.orders.length === 0) {
+                    container.innerHTML = `<div class="empty-state"><div class="empty-icon">🏭</div><h3>No production orders yet</h3><p>Auto-created when items sent to inventory</p></div>`;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <table class="inv-table">
+                        <thead><tr><th>ID</th><th>Raw Item</th><th>Qty</th><th>AI Product</th><th>Recipe</th><th>Cost</th><th>Revenue</th><th>⏰ Timer</th><th>Status</th></tr></thead>
+                        <tbody>
+                            ${data.orders.map(o => {
+                    let recipe = [];
+                    try { recipe = JSON.parse(o.recipe || '[]'); } catch (e) { }
+
+                    // Timer calculation
+                    let timerHTML = '';
+                    if (o.status === 'in_production' && o.started_at && o.estimated_hours) {
+                        const startTime = new Date(o.started_at + 'Z').getTime();
+                        const now = Date.now();
+                        const elapsedMs = now - startTime;
+                        const elapsedHours = (elapsedMs / 1000 / 3600) * DEMO_SPEED;
+                        const totalHours = o.estimated_hours;
+                        const remaining = Math.max(0, totalHours - elapsedHours);
+                        const progress = Math.min(100, (elapsedHours / totalHours) * 100);
+
+                        if (remaining <= 0) {
+                            timerHTML = `<span class="timer-badge timer-done">✅ Ready!</span>`;
+                        } else {
+                            const remMin = Math.round(remaining * 60);
+                            const remH = Math.floor(remMin / 60);
+                            const remM = remMin % 60;
+                            timerHTML = `
+                                <span class="timer-badge timer-running">⏳ ${remH}h ${remM}m left</span>
+                                <div class="timer-bar"><div class="timer-fill" style="width:${progress}%"></div></div>
+                                <div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${totalHours}h total (${Math.round(totalHours / DEMO_SPEED * 3600)}s real)</div>
+                            `;
+                        }
+                    } else if (o.status === 'completed') {
+                        timerHTML = `<span class="timer-badge timer-done">✅ Done</span>`;
+                    } else {
+                        timerHTML = `<span class="timer-badge" style="background:rgba(255,255,255,0.05);color:var(--text-muted);">⏸ ${o.estimated_hours || '?'}h</span>`;
+                    }
+
+                    return `<tr>
+                        <td>#${o.id}</td>
+                        <td><strong>🌿 ${o.item_name}</strong></td>
+                        <td>${o.total_kg} kg</td>
+                        <td>🎯 ${o.predicted_product || 'N/A'}</td>
+                        <td><div class="recipe-chips">${recipe.map(r => `<span class="recipe-chip">${r.item}: ${r.kg}kg</span>`).join('')}</div></td>
+                        <td>₹${(o.material_cost || 0).toLocaleString()}</td>
+                        <td style="color:#22c55e; font-weight:700;">₹${(o.estimated_selling_price || 0).toLocaleString()}</td>
+                        <td>${timerHTML}</td>
+                        <td>${statusBadge(o.status)}</td>
+                    </tr>`;
+                }).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) { showToast('Failed to load production', 'error'); }
+        }
+
+        // ===== PACKING =====
+        async function loadPacking() {
+            try {
+                const data = await api('/api/admin/packing');
+                const container = document.getElementById('packingList');
+
+                if (data.orders.length === 0) {
+                    container.innerHTML = `<div class="empty-state"><div class="empty-icon">📦</div><h3>No packing orders yet</h3><p>Auto-created when production timer completes</p></div>`;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <table class="inv-table">
+                        <thead><tr><th>ID</th><th>Product</th><th>Output Qty</th><th>From Item</th><th>Cost</th><th>Revenue</th><th>Status</th></tr></thead>
+                        <tbody>
+                            ${data.orders.map(o => `<tr>
+                                <td>#${o.id}</td>
+                                <td><strong>📦 ${o.product_name}</strong></td>
+                                <td>${o.quantity_kg} kg</td>
+                                <td>🌿 ${o.source_raw_item || o.source_item}</td>
+                                <td>₹${(o.material_cost || 0).toLocaleString()}</td>
+                                <td style="color:#22c55e; font-weight:700;">₹${(o.estimated_selling_price || 0).toLocaleString()}</td>
+                                <td>${statusBadge(o.status)}</td>
+                            </tr>`).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) { showToast('Failed to load packing', 'error'); }
+        }
+
+        // ===== COST ANALYSIS =====
+        async function loadCosts() {
+            try {
+                const data = await api('/api/admin/costs');
+                const container = document.getElementById('costAnalysis');
+
+                container.innerHTML = `
+                    <div class="stats-grid" style="margin-bottom:30px;">
+                        <div class="cost-card investment"><div class="cost-value">₹${data.base_investment.toLocaleString()}</div><div class="cost-label">💰 Base Investment</div></div>
+                        <div class="cost-card"><div class="cost-value" style="color:#f59e0b;">₹${data.total_material_cost.toLocaleString()}</div><div class="cost-label">📊 Material Cost</div></div>
+                        <div class="cost-card"><div class="cost-value" style="color:#3b82f6;">₹${data.total_estimated_revenue.toLocaleString()}</div><div class="cost-label">💵 Est. Revenue</div></div>
+                        <div class="cost-card ${data.net_profit >= 0 ? 'profit' : 'loss'}"><div class="cost-value">₹${data.net_profit.toLocaleString()}</div><div class="cost-label">${data.net_profit >= 0 ? '📈' : '📉'} Net Profit</div></div>
+                        <div class="cost-card ${data.roi_percentage >= 0 ? 'profit' : 'loss'}"><div class="cost-value">${data.roi_percentage}%</div><div class="cost-label">📊 ROI</div></div>
+                    </div>
+                    ${data.breakdown.length > 0 ? `
+                    <div class="glass-card-static" style="overflow-x:auto;">
+                        <h3 style="padding:16px 16px 0; font-size:16px;">📋 Cost Breakdown</h3>
+                        <table class="inv-table">
+                            <thead><tr><th>Raw Item</th><th>AI Product</th><th>Qty</th><th>Cost</th><th>Revenue</th><th>Margin</th><th>Status</th></tr></thead>
+                            <tbody>
+                                ${data.breakdown.map(b => {
+                    const margin = (b.estimated_selling_price || 0) - (b.material_cost || 0);
+                    return `<tr>
+                        <td>🌿 ${b.item_name}</td>
+                        <td><strong>🎯 ${b.predicted_product || 'N/A'}</strong></td>
+                        <td>${b.total_kg} kg</td>
+                        <td>₹${(b.material_cost || 0).toLocaleString()}</td>
+                        <td style="color:#22c55e;">₹${(b.estimated_selling_price || 0).toLocaleString()}</td>
+                        <td style="color:${margin >= 0 ? '#22c55e' : '#ef4444'}; font-weight:700;">₹${margin.toLocaleString()}</td>
+                        <td>${statusBadge(b.status)}</td>
+                    </tr>`;
+                }).join('')}
+                            </tbody>
+                        </table>
+                    </div>` : ''}
+                `;
+            } catch (err) { showToast('Failed to load costs', 'error'); }
+        }
+
+        function statusBadge(status) {
+            const map = {
+                'pending': '⏳ Pending', 'assigned': '🚛 Assigned', 'in_transit': '🚗 Transit',
+                'completed': '✅ Completed', 'in_production': '🏭 Producing', 'packing': '📦 Packing',
+                'packed': '✅ Packed', 'dispatched': '🚚 Dispatched', 'received': '📥 Received',
+                'processing': '🔄 Processing', 'processed': '✅ Processed'
+            };
+            return `<span class="status-badge status-${status}">${map[status] || status}</span>`;
+        }
+
+        // Auto-refresh production timers every 5 seconds
+        setInterval(() => {
+            if (currentSection === 'production') loadProduction();
+        }, 5000);
+
+        loadPipeline();
+
+        // ===== CUSTOMER FEEDBACK =====
+        async function loadFeedback() {
+            try {
+                const data = await api('/api/admin/feedback');
+                const fb = data.feedback || [];
+                if (data.unread_count > 0) {
+                    document.getElementById('fbBadge').textContent = data.unread_count;
+                    document.getElementById('fbBadge').style.display = 'inline';
+                } else {
+                    document.getElementById('fbBadge').style.display = 'none';
+                }
+                if (fb.length === 0) {
+                    document.getElementById('feedbackList').innerHTML = '<div class="empty-state"><h3>No feedback yet</h3><p>Customer feedback will appear here</p></div>';
+                    return;
+                }
+                document.getElementById('feedbackList').innerHTML = fb.map(f => {
+                    let stars = '';
+                    for (let i = 0; i < 5; i++) stars += i < f.rating ? '⭐' : '☆';
+                    const stMap = { unread: { col: '#f59e0b', bg: 'rgba(245,158,11,.1)' }, read: { col: '#3b82f6', bg: 'rgba(59,130,246,.1)' }, resolved: { col: '#22c55e', bg: 'rgba(34,197,94,.1)' } };
+                    const st = stMap[f.status] || stMap.unread;
+                    return `<div class="glass-card-static" style="padding:20px;margin-bottom:12px;border-left:3px solid ${st.col}">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+                            <div>
+                                <h3 style="margin:0;font-size:17px">${f.subject}</h3>
+                                <div style="font-size:12px;color:var(--text-muted);margin-top:4px">${f.customer_name} · ${f.customer_email || ''} · ${stars}</div>
+                            </div>
+                            <div style="text-align:right">
+                                <span style="background:${st.bg};color:${st.col};padding:3px 10px;border-radius:10px;font-size:11px;font-weight:700">${(f.status || 'unread').toUpperCase()}</span>
+                                <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${f.created_at ? new Date(f.created_at).toLocaleDateString() : ''}</div>
+                            </div>
+                        </div>
+                        <p style="color:var(--text-secondary);font-size:14px;margin:12px 0;padding:10px;background:rgba(255,255,255,.02);border-radius:8px">${f.message}</p>
+                        ${f.admin_reply ? `<div style="padding:8px 12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:8px;font-size:12px;margin-bottom:10px"><strong style="color:#22c55e">Your Reply:</strong> ${f.admin_reply}</div>` : ''}
+                        <div style="display:flex;gap:8px">
+                            ${f.status === 'unread' ? `<button style="background:rgba(59,130,246,.15);color:#3b82f6;border:1px solid rgba(59,130,246,.3);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600" onclick="markRead(${f.id})">Mark Read</button>` : ''}
+                            ${f.status !== 'resolved' ? `<button style="background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.3);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:600" onclick="resolveFeedback(${f.id})">Resolve</button>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (err) { showToast('Failed to load feedback', 'error'); }
+        }
+
+        async function markRead(id) {
+            try { await api(`/api/admin/feedback/${id}/read`, { method: 'PUT' }); loadFeedback(); } catch (e) { showToast(e.message, 'error'); }
+        }
+        async function resolveFeedback(id) {
+            const reply = prompt('Enter reply to customer (optional):');
+            try { await api(`/api/admin/feedback/${id}/resolve`, { method: 'PUT', body: JSON.stringify({ reply: reply || 'Thank you for your feedback!' }) }); showToast('Feedback resolved!', 'success'); loadFeedback(); } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        // ===== DATABASE TABLE VIEWER =====
+        async function loadDbTables() {
+            try {
+                const data = await api('/api/admin/database/tables');
+                document.getElementById('tableButtons').innerHTML = data.tables.map(t => `
+                    <button style="background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:10px;padding:10px 16px;color:var(--text-primary);cursor:pointer;font-weight:600;font-size:13px" onclick="loadTableData('${t.name}')">
+                        🗂️ ${t.name} <span style="color:var(--text-muted);font-weight:400">(${t.row_count})</span>
+                    </button>
+                `).join('');
+            } catch (err) { showToast('Failed to load tables', 'error'); }
+        }
+
+        async function loadTableData(tableName) {
+            try {
+                document.getElementById('tableContent').innerHTML = '<div class="spinner"></div>';
+                const data = await api(`/api/admin/database/table/${tableName}`);
+                if (data.rows.length === 0) {
+                    document.getElementById('tableContent').innerHTML = `<h3 style="margin:0 0 10px">🗂️ ${tableName}</h3><p style="color:var(--text-muted)">No data in this table</p>`;
+                    return;
+                }
+                const cols = data.columns;
+                document.getElementById('tableContent').innerHTML = `
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+                        <h3 style="margin:0">🗂️ ${tableName}</h3>
+                        <span style="color:var(--text-muted);font-size:12px">${data.total} rows</span>
+                    </div>
+                    <table class="inv-table">
+                        <thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead>
+                        <tbody>${data.rows.map(r => `<tr>${cols.map(c => {
+                    let val = r[c];
+                    if (val === null) val = '<span style="color:var(--text-muted)">NULL</span>';
+                    else if (typeof val === 'string' && val.length > 50) val = val.substring(0, 50) + '...';
+                    return `<td>${val}</td>`;
+                }).join('')}</tr>`).join('')}</tbody>
+                    </table>
+                `;
+            } catch (err) { showToast('Failed to load table', 'error'); }
+        }
+
+        // Socket: feedback notification
+        socket.on('new_feedback', (d) => { showToast(d.message, 'info'); loadFeedback(); });
+
+        // Check for unread feedback on load
+        api('/api/admin/feedback').then(d => {
+            if (d.unread_count > 0) {
+                document.getElementById('fbBadge').textContent = d.unread_count;
+                document.getElementById('fbBadge').style.display = 'inline';
+            }
+        }).catch(() => { });
+    </script>
+</body>
+
+</html>

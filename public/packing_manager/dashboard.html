@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packing Manager - GreenCycle</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .stat-box {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 18px;
+            text-align: center;
+        }
+
+        .stat-box .num {
+            font-size: 26px;
+            font-weight: 800;
+            color: #22c55e;
+        }
+
+        .stat-box .label {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+
+        .emp-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 14px;
+            margin-bottom: 24px;
+        }
+
+        .emp-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 18px;
+            transition: all 0.2s;
+        }
+
+        .emp-card:hover {
+            border-color: rgba(34, 197, 94, 0.4);
+            transform: translateY(-2px);
+        }
+
+        .emp-card h4 {
+            margin: 0 0 8px;
+            font-size: 15px;
+        }
+
+        .emp-status {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            margin-bottom: 8px;
+        }
+
+        .emp-status .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        .emp-status .dot.active {
+            background: #f59e0b;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .emp-status .dot.free {
+            background: #22c55e;
+        }
+
+        .emp-stats {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .emp-stats span {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+
+        .emp-stats strong {
+            color: var(--text-primary);
+        }
+
+        .inv-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .inv-table th,
+        .inv-table td {
+            padding: 11px 14px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .inv-table th {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-green {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .badge-blue {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .badge-yellow {
+            background: rgba(234, 179, 8, 0.15);
+            color: #eab308;
+        }
+
+        .badge-purple {
+            background: rgba(168, 85, 247, 0.15);
+            color: #a855f7;
+        }
+
+        .badge-red {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .product-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 14px;
+        }
+
+        .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .progress-bar {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 6px;
+            height: 8px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 6px;
+            background: linear-gradient(90deg, #22c55e, #3b82f6);
+            transition: width 0.5s;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-gradient"></div>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2>GreenCycle</h2><span>PACKING MGR</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="showSection('dashboard', this)"><span class="nav-icon">📊
+                        Dashboard</span></div>
+                <div class="nav-item" onclick="showSection('employees', this)"><span class="nav-icon">👥 Employees</span>
+                </div>
+                <div class="nav-item" onclick="showSection('products', this)"><span class="nav-icon">📦 Products</span></div>
+                <div class="nav-item" onclick="showSection('orders', this)"><span class="nav-icon">📋 All Orders</span></div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">P</div>
+                    <div class="user-details">
+                        <h4 id="userName">Manager</h4><span>Packing</span>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </aside>
+        <main class="main-content">
+            <!-- Dashboard -->
+            <section id="section-dashboard">
+                <div class="page-header">
+                    <h1>📦 Packing Manager Dashboard</h1>
+                    <p>Monitor all packing employees, track box output, and product packing status</p>
+                </div>
+                <div class="stats-row" id="statsRow"></div>
+                <div class="glass-card-static" style="margin-bottom:24px;">
+                    <h3 style="margin:0 0 16px;">Product Packing Overview</h3>
+                    <div id="productOverview"></div>
+                </div>
+            </section>
+
+            <!-- Employees -->
+            <section id="section-employees" style="display:none;">
+                <div class="page-header">
+                    <h1>👥 Employee Status</h1>
+                    <p>Track all packing employees and their current tasks</p>
+                </div>
+                <div id="empGrid" class="emp-grid"></div>
+            </section>
+
+            <!-- Products -->
+            <section id="section-products" style="display:none;">
+                <div class="page-header">
+                    <h1>📦 Product Packing Summary</h1>
+                    <p>Aggregated packing details per product</p>
+                </div>
+                <div id="productsList"></div>
+            </section>
+
+            <!-- All Orders -->
+            <section id="section-orders" style="display:none;">
+                <div class="page-header">
+                    <h1>📋 All Packing Orders</h1>
+                    <p>Every packing task with employee assignments</p>
+                </div>
+                <div class="glass-card-static" style="overflow-x:auto;" id="ordersList"></div>
+            </section>
+        </main>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/api.js"></script>
+    <script>
+        const currentUser = requireAuth('packing_manager');
+        if (!currentUser) { window.location.href = '/login.html'; }
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('userAvatar').textContent = currentUser.name.charAt(0);
+
+        const socket = io();
+        socket.emit('join', { role: 'packing_manager', userId: currentUser.id });
+
+        function showSection(name, el) {
+            document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+            document.getElementById(`section-${name}`).style.display = 'block';
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (el) el.classList.add('active');
+            if (name === 'dashboard') { loadStats(); loadProductOverview(); }
+            if (name === 'employees') loadEmployees();
+            if (name === 'products') loadProducts();
+            if (name === 'orders') loadOrders();
+        }
+
+        async function loadStats() {
+            try {
+                const data = await api('/api/packing-manager/stats');
+                const s = data.stats;
+                document.getElementById('statsRow').innerHTML = `
+                    <div class="stat-box"><div class="num">${s.total_orders}</div><div class="label">Total Orders</div></div>
+                    <div class="stat-box"><div class="num" style="color:#f59e0b;">${s.packing}</div><div class="label">Currently Packing</div></div>
+                    <div class="stat-box"><div class="num">${s.packed}</div><div class="label">Completed</div></div>
+                    <div class="stat-box"><div class="num" style="color:#ef4444;">${s.unassigned}</div><div class="label">Unassigned</div></div>
+                    <div class="stat-box"><div class="num" style="color:#3b82f6;">${s.total_boxes}</div><div class="label">Total Boxes</div></div>
+                    <div class="stat-box"><div class="num">${s.pending}</div><div class="label">Pending</div></div>
+                `;
+            } catch (err) { showToast('Failed to load stats', 'error'); }
+        }
+
+        async function loadProductOverview() {
+            try {
+                const data = await api('/api/packing-manager/products');
+                if (data.products.length === 0) {
+                    document.getElementById('productOverview').innerHTML = '<div style="text-align:center;padding:30px;color:var(--text-muted);">No products yet</div>';
+                    return;
+                }
+                document.getElementById('productOverview').innerHTML = data.products.map(p => {
+                    const total = p.order_count;
+                    const done = p.completed;
+                    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+                    return `<div class="product-card">
+                        <div class="product-header">
+                            <div>
+                                <h4 style="margin:0;">${p.product_name}</h4>
+                                <div style="font-size:12px;color:var(--text-muted);margin-top:3px;">Employees: ${p.employees || 'None assigned'}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <span class="badge badge-green">${p.total_boxes} boxes</span>
+                                <span class="badge badge-blue" style="margin-left:4px;">${p.total_kg} kg</span>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:16px;font-size:12px;color:var(--text-secondary);">
+                            <span>Pending: <strong>${p.pending}</strong></span>
+                            <span>Packing: <strong style="color:#f59e0b;">${p.packing}</strong></span>
+                            <span>Done: <strong style="color:#22c55e;">${p.completed}</strong></span>
+                        </div>
+                        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;"></div></div>
+                        <div style="font-size:11px;color:var(--text-muted);margin-top:4px;">${pct}% complete (${done}/${total} orders)</div>
+                    </div>`;
+                }).join('');
+            } catch (err) { showToast('Failed to load products', 'error'); }
+        }
+
+        async function loadEmployees() {
+            try {
+                const data = await api('/api/packing-manager/employees');
+                if (data.employees.length === 0) {
+                    document.getElementById('empGrid').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">No employees</div>';
+                    return;
+                }
+                document.getElementById('empGrid').innerHTML = data.employees.map(e => {
+                    const isBusy = e.active_tasks > 0;
+                    return `<div class="emp-card">
+                        <h4>${e.name}</h4>
+                        <div class="emp-status">
+                            <span class="dot ${isBusy ? 'active' : 'free'}"></span>
+                            ${isBusy ? '<span style="color:#f59e0b;font-weight:600;">PACKING</span>' : '<span style="color:#22c55e;font-weight:600;">AVAILABLE</span>'}
+                        </div>
+                        <div class="emp-stats">
+                            <span>Active: <strong style="color:#f59e0b;">${e.active_tasks}</strong></span>
+                            <span>Completed: <strong style="color:#22c55e;">${e.completed_tasks}</strong></span>
+                            <span>Boxes: <strong style="color:#3b82f6;">${e.total_boxes_packed}</strong></span>
+                            <span>Kg: <strong>${e.total_kg_packed}</strong></span>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (err) { showToast('Failed to load employees', 'error'); }
+        }
+
+        async function loadProducts() {
+            try {
+                const data = await api('/api/packing-manager/products');
+                if (data.products.length === 0) {
+                    document.getElementById('productsList').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">No products</div>';
+                    return;
+                }
+                document.getElementById('productsList').innerHTML = data.products.map(p => `
+                    <div class="product-card">
+                        <div class="product-header">
+                            <h4 style="margin:0;font-size:18px;">${p.product_name}</h4>
+                            <div>
+                                <span class="badge badge-green" style="font-size:14px;">${p.total_boxes} boxes</span>
+                                <span class="badge badge-blue" style="font-size:14px;margin-left:6px;">${p.total_kg} kg total</span>
+                            </div>
+                        </div>
+                        <div style="margin-top:10px;display:flex;gap:20px;flex-wrap:wrap;">
+                            <div style="font-size:13px;">
+                                <span style="color:var(--text-muted);">Orders:</span> <strong>${p.order_count}</strong>
+                            </div>
+                            <div style="font-size:13px;">
+                                <span style="color:var(--text-muted);">Pending:</span> <strong style="color:#ef4444;">${p.pending}</strong>
+                            </div>
+                            <div style="font-size:13px;">
+                                <span style="color:var(--text-muted);">Packing:</span> <strong style="color:#f59e0b;">${p.packing}</strong>
+                            </div>
+                            <div style="font-size:13px;">
+                                <span style="color:var(--text-muted);">Completed:</span> <strong style="color:#22c55e;">${p.completed}</strong>
+                            </div>
+                        </div>
+                        <div style="margin-top:8px;font-size:12px;color:var(--text-secondary);">
+                            Employees: <strong>${p.employees || 'None'}</strong>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) { showToast('Failed to load products', 'error'); }
+        }
+
+        async function loadOrders() {
+            try {
+                const data = await api('/api/packing-manager/orders');
+                if (data.orders.length === 0) {
+                    document.getElementById('ordersList').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">No orders</div>';
+                    return;
+                }
+                const statusBadge = (s) => {
+                    const map = { pending: 'yellow', packing: 'blue', packed: 'green', dispatched: 'purple' };
+                    return `<span class="badge badge-${map[s] || 'yellow'}">${s}</span>`;
+                };
+                document.getElementById('ordersList').innerHTML = `<table class="inv-table">
+                    <thead><tr><th>ID</th><th>Product</th><th>Employee</th><th>Qty</th><th>Boxes</th><th>Items</th><th>Status</th></tr></thead>
+                    <tbody>${data.orders.map(o => `<tr>
+                        <td>#${o.id}</td>
+                        <td><strong>${o.product_name}</strong></td>
+                        <td>${o.employee_name || '<span style="color:#ef4444;">Unassigned</span>'}</td>
+                        <td>${o.quantity_kg} kg</td>
+                        <td style="font-weight:700;">${o.boxes_packed || 0} boxes</td>
+                        <td>${o.total_items || '-'} items</td>
+                        <td>${statusBadge(o.status)}</td>
+                    </tr>`).join('')}</tbody>
+                </table>`;
+            } catch (err) { showToast('Failed to load orders', 'error'); }
+        }
+
+        // Real-time notifications
+        socket.on('task_accepted', (data) => {
+            showToast(`${data.employee} accepted task #${data.taskId}`, 'info');
+            loadStats(); loadProductOverview(); loadEmployees();
+        });
+        socket.on('production_completed', (data) => {
+            showToast(data.message, 'info');
+            loadStats(); loadProductOverview();
+        });
+
+        // Auto-refresh
+        setInterval(() => {
+            if (document.getElementById('section-dashboard')?.style.display !== 'none') { loadStats(); loadProductOverview(); }
+        }, 15000);
+
+        loadStats();
+        loadProductOverview();
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Driver - GreenCycle</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .del-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .del-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .del-header h3 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-shipped {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .badge-at_zone_hub {
+            background: rgba(168, 85, 247, 0.15);
+            color: #a855f7;
+        }
+
+        .badge-out_for_delivery {
+            background: rgba(234, 179, 8, 0.15);
+            color: #eab308;
+        }
+
+        .badge-delivered {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-box {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-box .num {
+            font-size: 32px;
+            font-weight: 800;
+            color: #22c55e;
+        }
+
+        .stat-box .label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-gradient"></div>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2>GreenCycle</h2><span>SALES DRIVER</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active"><span class="nav-icon">My Deliveries</span></div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">S</div>
+                    <div class="user-details">
+                        <h4 id="userName">Driver</h4><span>Sales</span>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </aside>
+        <main class="main-content">
+            <div class="page-header">
+                <h1>My Zone Deliveries</h1>
+                <p>AI-assigned deliveries in your zone</p>
+            </div>
+            <div class="stats-row" id="statsRow"></div>
+            <div id="tasksList"></div>
+        </main>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/api.js"></script>
+    <script>
+        const currentUser = requireAuth('sales_driver');
+        if (!currentUser) { window.location.href = '/login.html'; }
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('userAvatar').textContent = currentUser.name.charAt(0);
+
+        const socket = io();
+        socket.emit('join', { role: 'sales_driver', userId: currentUser.id });
+        socket.on('new_delivery', () => { loadTasks(); showToast('New delivery assigned!', 'success'); });
+
+        async function loadTasks() {
+            try {
+                const [tasksData, profileData] = await Promise.all([api('/api/sales-driver/tasks'), api('/api/sales-driver/profile')]);
+                const s = profileData.stats;
+                document.getElementById('statsRow').innerHTML = `
+                    <div class="stat-box"><div class="num">${s.active}</div><div class="label">Active Deliveries</div></div>
+                    <div class="stat-box"><div class="num">${s.delivered}</div><div class="label">Delivered</div></div>
+                `;
+
+                const tasks = tasksData.tasks;
+                if (tasks.length === 0) { document.getElementById('tasksList').innerHTML = '<div class="empty-state"><h3>No deliveries</h3><p>AI will assign orders in your zone</p></div>'; return; }
+
+                document.getElementById('tasksList').innerHTML = tasks.map(t => {
+                    let actionHTML = '';
+                    if (t.status === 'shipped') actionHTML = `<button class="btn btn-primary btn-sm" onclick="updateTask(${t.id},'at_zone_hub')">Arrived at Zone Hub</button>`;
+                    else if (t.status === 'at_zone_hub') actionHTML = `<button class="btn btn-primary btn-sm" onclick="updateTask(${t.id},'out_for_delivery')">Out for Delivery</button>`;
+                    else if (t.status === 'out_for_delivery') actionHTML = `<button class="btn btn-primary btn-sm" onclick="updateTask(${t.id},'delivered')">Mark Delivered</button>`;
+                    else actionHTML = '<span style="color:#22c55e;font-weight:600;">Delivered</span>';
+
+                    return `<div class="del-card">
+                        <div class="del-header"><h3>Order #${t.id} - ${t.product_name}</h3><span class="badge badge-${t.status}">${t.status.replace(/_/g, ' ')}</span></div>
+                        <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">Customer: <strong>${t.customer_name}</strong> | Phone: ${t.customer_phone}</div>
+                        <div style="font-size:13px;color:var(--text-secondary);">Address: ${t.customer_address}</div>
+                        <div style="font-size:13px;margin-top:4px;">Qty: <strong>${t.quantity_kg}kg</strong> | Price: <strong style="color:#22c55e;">Rs.${(t.total_price || 0).toLocaleString()}</strong></div>
+                        ${t.hub_name ? `<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">Zone Hub: ${t.hub_name}</div>` : ''}
+                        <div style="margin-top:12px;">${actionHTML}</div>
+                    </div>`;
+                }).join('');
+            } catch (err) { showToast('Failed to load tasks', 'error'); }
+        }
+
+        async function updateTask(id, status) { try { await api(`/api/sales-driver/tasks/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }); showToast(`Status: ${status.replace(/_/g, ' ')}`, 'success'); loadTasks(); } catch (e) { showToast(e.message, 'error'); } }
+
+        loadTasks();
+        setInterval(loadTasks, 15000);
+    </script>
+</body>
+
+</html>

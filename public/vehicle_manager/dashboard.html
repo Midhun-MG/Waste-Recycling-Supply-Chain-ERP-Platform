@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Manager - GreenCycle</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .live-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+            margin-right: 6px;
+        }
+
+        .driver-card,
+        .shop-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        .info-item {
+            color: var(--text-secondary);
+        }
+
+        .pickup-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .pickup-row.header {
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 11px;
+            color: var(--text-muted);
+            letter-spacing: 0.5px;
+        }
+
+        .inv-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .inv-table th,
+        .inv-table td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .inv-table th {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .status-select {
+            background: var(--glass-bg);
+            color: var(--text-primary);
+            border: 1px solid var(--glass-border);
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .section-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .pickup-tabs {
+            margin-bottom: 20px;
+        }
+
+        .items-detail {
+            background: rgba(34, 197, 94, 0.06);
+            border: 1px solid rgba(34, 197, 94, 0.15);
+            border-radius: var(--radius-xs);
+            padding: 10px 14px;
+            margin-top: 8px;
+        }
+
+        .agg-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .agg-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .agg-header h4 {
+            font-size: 18px;
+            margin: 0;
+        }
+
+        .agg-meta {
+            display: flex;
+            gap: 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .prediction-box {
+            background: rgba(59, 130, 246, 0.06);
+            border: 1px solid rgba(59, 130, 246, 0.15);
+            border-radius: var(--radius-xs);
+            padding: 16px;
+            margin-top: 12px;
+        }
+
+        .pred-product {
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .pred-use {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .confidence-badge.high {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .confidence-badge.medium {
+            background: rgba(234, 179, 8, 0.15);
+            color: #eab308;
+        }
+
+        .prod-status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .prod-status-badge.pending {
+            background: rgba(234, 179, 8, 0.15);
+            color: #eab308;
+        }
+
+        .prod-status-badge.in_production {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .prod-status-badge.completed {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .seg-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            margin-bottom: 12px;
+        }
+
+        .seg-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .seg-header h4 {
+            margin: 0;
+            font-size: 16px;
+        }
+
+        .seg-count {
+            font-size: 24px;
+            font-weight: 800;
+            color: #22c55e;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-gradient"></div>
+    <button class="mobile-menu-btn"
+        onclick="document.querySelector('.sidebar').classList.toggle('open')">&#9776;</button>
+
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2>GreenCycle</h2>
+                <span>VEHICLE MANAGER</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="showSection('dashboard', this)">
+                    <span class="nav-icon">Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="showSection('drivers', this)">
+                    <span class="nav-icon">Drivers</span>
+                </div>
+                <div class="nav-item" onclick="showSection('shops', this)">
+                    <span class="nav-icon">Shops</span>
+                </div>
+                <div class="nav-item" onclick="showSection('pickups', this)">
+                    <span class="nav-icon">All Pickups</span>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">V</div>
+                    <div class="user-details">
+                        <h4 id="userName">Manager</h4>
+                        <span>Vehicle Manager</span>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+
+            <!-- DASHBOARD -->
+            <section id="section-dashboard">
+                <div class="page-header">
+                    <h1>Welcome, <span id="welcomeName">Manager</span>!</h1>
+                    <p><span class="live-dot"></span>Full pipeline: Collection to Sales</p>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">Drivers</div>
+                        <div class="stat-value" id="statDrivers">0</div>
+                        <div class="stat-label">Total Drivers</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">Shops</div>
+                        <div class="stat-value" id="statShops">0</div>
+                        <div class="stat-label">Total Shops</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">Active</div>
+                        <div class="stat-value" id="statActive">0</div>
+                        <div class="stat-label">Active Pickups</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">Done</div>
+                        <div class="stat-value" id="statCompleted">0</div>
+                        <div class="stat-label">Completed Pickups</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">Inventory</div>
+                        <div class="stat-value" id="statInventory">0</div>
+                        <div class="stat-label">Inventory Items</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">Kg</div>
+                        <div class="stat-value" id="statTotalKg">0</div>
+                        <div class="stat-label">Total Kg Collected</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI COMBINED PREDICTIONS -->
+            <section id="section-combined" style="display:none;">
+                <div class="page-header">
+                    <h1>?? AI Combined Product Predictions</h1>
+                    <p>AI analyzes all inventory waste items and suggests NEW products by combining 2 or more items</p>
+                </div>
+                <div id="combinedPredictionsList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- DRIVERS -->
+            <section id="section-drivers" style="display:none;">
+                <div class="page-header">
+                    <h1>Drivers</h1>
+                    <p>All registered drivers and their performance</p>
+                </div>
+                <div class="cards-grid" id="driversList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- SHOPS -->
+            <section id="section-shops" style="display:none;">
+                <div class="page-header">
+                    <h1>Shops</h1>
+                    <p>Registered shop owners and waste generation</p>
+                </div>
+                <div class="cards-grid" id="shopsList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- PICKUPS -->
+            <section id="section-pickups" style="display:none;">
+                <div class="page-header">
+                    <h1>All Pickups</h1>
+                    <p>Track all waste collection requests</p>
+                </div>
+                <div class="pickup-tabs">
+                    <div class="section-tabs">
+                        <button class="btn btn-sm" onclick="loadPickups('all')">All</button>
+                        <button class="btn btn-sm" onclick="loadPickups('pending')">Pending</button>
+                        <button class="btn btn-sm" onclick="loadPickups('assigned')">Assigned</button>
+                        <button class="btn btn-sm" onclick="loadPickups('in_transit')">In Transit</button>
+                        <button class="btn btn-sm" onclick="loadPickups('completed')">Completed</button>
+                    </div>
+                </div>
+                <div class="glass-card-static" id="pickupsList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- INVENTORY -->
+            <section id="section-inventory" style="display:none;">
+                <div class="page-header">
+                    <h1>Inventory Department</h1>
+                    <p>Manage received waste inventory and dispatch status</p>
+                </div>
+                <div class="glass-card-static" style="overflow-x:auto;" id="inventoryList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- AGGREGATION -->
+            <section id="section-aggregation" style="display:none;">
+                <div class="page-header">
+                    <h1>Aggregation &amp; AI Prediction</h1>
+                    <p>Group similar items and get AI product predictions</p>
+                </div>
+                <div id="aggregationList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- PRODUCTION -->
+            <section id="section-production" style="display:none;">
+                <div class="page-header">
+                    <h1>Production Department</h1>
+                    <p>Track production orders with AI timers - auto-completes and sends to packing</p>
+                </div>
+                <div class="glass-card-static" style="overflow-x:auto;" id="productionList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- PACKING -->
+            <section id="section-packing" style="display:none;">
+                <div class="page-header">
+                    <h1>Packing Department</h1>
+                    <p>Pack produced products, then send to warehouse</p>
+                </div>
+                <div class="glass-card-static" style="overflow-x:auto;" id="packingList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- WAREHOUSE -->
+            <section id="section-warehouse" style="display:none;">
+                <div class="page-header">
+                    <h1>Warehouse Stocks</h1>
+                    <p>Segregated product stocks - ready for sales dispatch</p>
+                </div>
+                <div id="warehouseList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- SALES -->
+            <section id="section-sales" style="display:none;">
+                <div class="page-header">
+                    <h1>Sales Department</h1>
+                    <p>Warehouse to buyer delivery via drivers</p>
+                </div>
+                <div class="glass-card-static" style="overflow-x:auto;" id="salesList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/api.js"></script>
+    <script>
+        const currentUser = requireAuth('vehicle_manager');
+        if (!currentUser) { window.location.href = '/login.html'; }
+
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('welcomeName').textContent = currentUser.name.split(' ')[0];
+        document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+
+        const socket = io();
+        socket.emit('join', { role: 'vehicle_manager', userId: currentUser.id, name: currentUser.name });
+        socket.on('new_request', () => { loadStats(); });
+        socket.on('production_completed', (data) => { showToast(data.message, 'success'); loadProduction(); loadPacking(); loadWarehouse(); loadStats(); });
+
+        // ===== NAVIGATION =====
+        function showSection(name, el) {
+            document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+            document.getElementById(`section-${name}`).style.display = 'block';
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (el) el.classList.add('active');
+            document.querySelector('.sidebar').classList.remove('open');
+
+            if (name === 'dashboard') loadStats();
+            if (name === 'combined') loadCombinedPredictions();
+            if (name === 'drivers') loadDrivers();
+            if (name === 'shops') loadShops();
+            if (name === 'pickups') loadPickups();
+            if (name === 'inventory') loadInventory();
+            if (name === 'aggregation') loadAggregation();
+            if (name === 'production') loadProduction();
+            if (name === 'packing') loadPacking();
+            if (name === 'warehouse') loadWarehouse();
+            if (name === 'sales') loadSales();
+        }
+
+        function formatDate(d) { if (!d) return 'N/A'; return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
+
+        // ===== STATS =====
+        async function loadStats() {
+            try {
+                const data = await api('/api/vm/stats');
+                const s = data.stats;
+                document.getElementById('statDrivers').textContent = s.totalDrivers;
+                document.getElementById('statShops').textContent = s.totalShops;
+                document.getElementById('statActive').textContent = s.activePickups;
+                document.getElementById('statCompleted').textContent = s.completedPickups;
+                document.getElementById('statInventory').textContent = s.inventoryItems;
+                document.getElementById('statTotalKg').textContent = s.totalKgCollected + ' kg';
+            } catch (err) { showToast('Failed to load stats', 'error'); }
+        }
+
+        // ===== DRIVERS =====
+        async function loadDrivers() {
+            try {
+                const data = await api('/api/vm/drivers');
+                const container = document.getElementById('driversList');
+                if (data.drivers.length === 0) { container.innerHTML = '<div class="empty-state"><h3>No drivers registered</h3></div>'; return; }
+                container.innerHTML = data.drivers.map(d => `
+                    <div class="driver-card">
+                        <h4>${d.name}</h4>
+                        <div class="info-grid">
+                            <div class="info-item">Email: ${d.email}</div>
+                            <div class="info-item">Phone: ${d.phone || 'N/A'}</div>
+                            <div class="info-item">Address: ${d.address || 'N/A'}</div>
+                            <div class="info-item">Active: <strong>${d.active_jobs}</strong></div>
+                            <div class="info-item">Done: <strong>${d.completed_jobs}</strong></div>
+                            <div class="info-item">Collected: <strong>${d.total_kg} kg</strong></div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) { showToast('Failed to load drivers', 'error'); }
+        }
+
+        // ===== SHOPS =====
+        async function loadShops() {
+            try {
+                const data = await api('/api/vm/shops');
+                const container = document.getElementById('shopsList');
+                if (data.shops.length === 0) { container.innerHTML = '<div class="empty-state"><h3>No shops registered</h3></div>'; return; }
+                container.innerHTML = data.shops.map(s => `
+                    <div class="shop-card">
+                        <h4>${s.shop_name || s.name}</h4>
+                        <div class="info-grid">
+                            <div class="info-item">Owner: ${s.name}</div>
+                            <div class="info-item">Email: ${s.email}</div>
+                            <div class="info-item">Phone: ${s.phone || 'N/A'}</div>
+                            <div class="info-item">Requests: <strong>${s.total_requests}</strong></div>
+                            <div class="info-item">Pending: <strong>${s.pending_requests}</strong></div>
+                            <div class="info-item">Completed: <strong>${s.completed_requests}</strong></div>
+                            <div class="info-item">Total: <strong>${s.total_kg} kg</strong></div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) { showToast('Failed to load shops', 'error'); }
+        }
+
+        // ===== PICKUPS =====
+        let allPickups = [];
+        async function loadPickups(filterStatus) {
+            try {
+                const data = await api(`/api/vm/pickups${filterStatus && filterStatus !== 'all' ? '?status=' + filterStatus : ''}`);
+                allPickups = data.pickups;
+                renderPickups(data.pickups);
+            } catch (err) { showToast('Failed to load pickups', 'error'); }
+        }
+
+        function renderPickups(pickups) {
+            const container = document.getElementById('pickupsList');
+            if (pickups.length === 0) { container.innerHTML = '<div class="empty-state"><h3>No pickups found</h3></div>'; return; }
+            container.innerHTML = `
+                <div class="pickup-row header"><span style="width:50px">#</span><span style="flex:1">Shop</span><span style="width:80px">Kg</span><span style="width:100px">Status</span><span style="width:130px">Date</span><span style="width:120px">Driver</span><span style="width:120px">Action</span></div>
+                ${pickups.map(p => `
+                    <div class="pickup-row">
+                        <span style="width:50px">${p.id}</span>
+                        <span style="flex:1"><strong>${p.shop_name || p.client_name}</strong><br><small style="color:var(--text-muted)">${p.shop_address || ''}</small></span>
+                        <span style="width:80px">${p.quantity_kg} kg</span>
+                        <span style="width:100px"><span class="status-badge status-${p.status}">${p.status}</span></span>
+                        <span style="width:130px">${formatDate(p.updated_at)}</span>
+                        <span style="width:120px">${p.driver_name || 'Unassigned'}</span>
+                        <span style="width:120px">${p.status === 'completed' ? `<button class="btn btn-sm btn-primary" onclick="sendToInventory(${p.id}, this)">To Inventory</button>` : ''}</span>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        async function sendToInventory(requestId, btn) {
+            try {
+                if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+                await api('/api/vm/send-to-inventory', { method: 'POST', body: JSON.stringify({ request_id: requestId }) });
+                showToast('Items sent to inventory!', 'success');
+                loadPickups(); loadStats();
+            } catch (err) { showToast(err.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'To Inventory'; } }
+        }
+
+        // ===== INVENTORY =====
+        async function loadInventory() {
+            try {
+                const data = await api('/api/vm/inventory');
+                const container = document.getElementById('inventoryList');
+                if (data.inventory.length === 0) { container.innerHTML = '<div class="empty-state"><h3>Inventory is empty</h3><p>Send completed pickup items to inventory</p></div>'; return; }
+                container.innerHTML = `
+                    <table class="inv-table">
+                        <thead><tr><th>ID</th><th>Item</th><th>Qty (Kg)</th><th>Source Shop</th><th>Driver</th><th>Received</th><th>Status</th></tr></thead>
+                        <tbody>
+                            ${data.inventory.map(i => `
+                                <tr>
+                                    <td>#${i.id}</td>
+                                    <td><strong>${i.item_name}</strong></td>
+                                    <td>${i.quantity_kg} kg</td>
+                                    <td>${i.source_shop_name || 'N/A'}</td>
+                                    <td>${i.driver_name || 'N/A'}</td>
+                                    <td>${formatDate(i.received_at)}</td>
+                                    <td>
+                                        <select class="status-select" onchange="updateInvStatus(${i.id}, this.value)">
+                                            <option value="received" ${i.status === 'received' ? 'selected' : ''}>Received</option>
+                                            <option value="processing" ${i.status === 'processing' ? 'selected' : ''}>Processing</option>
+                                            <option value="processed" ${i.status === 'processed' ? 'selected' : ''}>Processed</option>
+                                            <option value="dispatched" ${i.status === 'dispatched' ? 'selected' : ''}>Dispatched</option>
+                                        </select>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) { showToast('Failed to load inventory', 'error'); }
+        }
+
+        async function updateInvStatus(id, status) {
+            try { await api(`/api/vm/inventory/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) }); showToast(`Status updated to ${status}`, 'success'); loadStats(); }
+            catch (err) { showToast(err.message, 'error'); }
+        }
+
+        // ===== COMBINED AI PREDICTIONS (dedicated section) =====
+        async function loadCombinedPredictions() {
+            const container = document.getElementById('combinedPredictionsList');
+            container.innerHTML = '<div style="text-align:center;padding:20px;"><div class="spinner"></div><div style="margin-top:10px;color:var(--text-secondary);">?? AI is analyzing all inventory items to find optimal product combinations...</div></div>';
+            try {
+                const data = await api('/api/vm/predict/combined');
+                if (!data.combined_predictions || data.combined_predictions.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><h3>No Combined Predictions Yet</h3><p>AI needs at least 2 matching waste item types in inventory to suggest combined products.</p><p style="font-size:13px;color:var(--text-muted);margin-top:8px;">Available items: ' + (data.available_items || []).map(i => '<strong>' + i.item_name + '</strong>').join(', ') + '</p></div>';
+                    return;
+                }
+
+                let html = `
+                    <div style="margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+                        <div>
+                            <div style="font-size:14px;color:var(--text-secondary);">AI analyzed <strong>${data.available_items.length}</strong> inventory items and found <strong style="color:#22c55e;">${data.total_combinations}</strong> optimal product combinations</div>
+                        </div>
+                        <button class="btn btn-sm" style="background:rgba(168,85,247,0.2);color:#c084fc;border:1px solid rgba(168,85,247,0.3);" onclick="toggleCombinedHumanForm()">????? Human Combined Suggest</button>
+                    </div>
+                    <div id="topCombinedHumanForm" style="display:none;margin-bottom:16px;"></div>
+                `;
+
+                // Sort by profit margin descending
+                const sorted = [...data.combined_predictions].sort((a, b) => b.profit_per_kg - a.profit_per_kg);
+
+                sorted.forEach((cp, idx) => {
+                    const profitColor = cp.profit_per_kg > 500 ? '#22c55e' : cp.profit_per_kg > 200 ? '#eab308' : '#f59e0b';
+                    html += `
+                        <div style="background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:12px;padding:18px;margin-bottom:14px;position:relative;overflow:hidden;">
+                            <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg, #22c55e, #3b82f6, #8b5cf6);"></div>
+                            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;">
+                                <div>
+                                    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+                                        <span style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;">#${idx + 1}</span>
+                                        <span class="confidence-badge ${cp.confidence}">${cp.confidence}</span>
+                                        <span style="font-size:12px;color:var(--text-muted);">Combines: ${cp.items_combined.map(i => '<strong style="color:#60a5fa;">' + i + '</strong>').join(' + ')}</span>
+                                    </div>
+                                    <div style="font-size:18px;font-weight:800;">${cp.product}</div>
+                                    <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">${cp.use}</div>
+                                </div>
+                                <div style="text-align:right;min-width:140px;">
+                                    <div style="font-size:24px;font-weight:800;color:${profitColor};">?${cp.profit_per_kg}/kg</div>
+                                    <div style="font-size:12px;color:var(--text-muted);">Profit (${cp.profit_margin})</div>
+                                </div>
+                            </div>
+                            <div style="display:flex;gap:20px;flex-wrap:wrap;margin:12px 0;font-size:13px;">
+                                <div style="background:rgba(34,197,94,0.08);padding:8px 14px;border-radius:8px;border:1px solid rgba(34,197,94,0.15);">
+                                    ?? Cost: <strong>?${cp.cost_per_kg}/kg</strong>
+                                </div>
+                                <div style="background:rgba(59,130,246,0.08);padding:8px 14px;border-radius:8px;border:1px solid rgba(59,130,246,0.15);">
+                                    ?? Sell: <strong>?${cp.sell_per_kg}/kg</strong>
+                                </div>
+                                <div style="background:rgba(168,85,247,0.08);padding:8px 14px;border-radius:8px;border:1px solid rgba(168,85,247,0.15);">
+                                    ?? Time: <strong>${cp.hours}h</strong>
+                                </div>
+                                ${cp.extra_materials_cost > 0 ? '<div style="background:rgba(245,158,11,0.08);padding:8px 14px;border-radius:8px;border:1px solid rgba(245,158,11,0.15);">?? Extra Cost: <strong>?' + cp.extra_materials_cost + '</strong></div>' : ''}
+                            </div>
+                            ${formatIngredients(cp.waste_ingredients, 'Waste Ingredients (FREE from inventory)', '??')}
+                            ${formatIngredients(cp.extra_materials, 'Extra Materials to Purchase', '??')}
+                            <div style="margin-top:14px;">
+                                <button class="btn btn-primary btn-sm" onclick="sendCombinedToProduction('${cp.items_combined.join('+')}', '${cp.product.replace(/'/g, "\\'")}', '${cp.use.replace(/'/g, "\\'")}', ${cp.hours}, ${cp.extra_materials_cost || 0})">?? Send to Production</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = '<div class="empty-state"><h3>Failed to load</h3><p>' + (err.message || 'Unknown error') + '</p></div>';
+            }
+        }
+
+        function toggleCombinedHumanForm() {
+            const form = document.getElementById('topCombinedHumanForm');
+            if (form.style.display !== 'none') { form.style.display = 'none'; return; }
+            form.style.display = 'block';
+            form.innerHTML = `
+                <div style="background:rgba(168,85,247,0.06);border:1px solid rgba(168,85,247,0.2);border-radius:12px;padding:18px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                        <div style="font-size:15px;font-weight:700;color:#c084fc;">????? Suggest a Combined Product (your expertise using 2+ waste items)</div>
+                        <button style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:18px;" onclick="document.getElementById('topCombinedHumanForm').style.display='none'">?</button>
+                    </div>
+                    <div style="display:grid;gap:10px;">
+                        <input type="text" id="top-combined-product" class="form-input" placeholder="Your combined product name (e.g. Herbal Pain Relief Balm)" style="margin-bottom:0;">
+                        <input type="text" id="top-combined-use" class="form-input" placeholder="Use case (e.g. Traditional anti-inflammatory medicine using ginger + turmeric)" style="margin-bottom:0;">
+                        <div style="font-size:11px;color:#f59e0b;padding:6px 10px;background:rgba(245,158,11,0.1);border-radius:6px;">
+                            ? AI will auto-estimate Cost, Selling Price, and Production Time based on your ingredients
+                        </div>
+                        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);">?? Ingredients from 2+ waste items:</div>
+                        <div id="top-combined-ingredients">
+                            <div class="ingredient-row" style="display:flex;gap:8px;margin-bottom:6px;">
+                                <input type="text" class="form-input" placeholder="Waste item 1 (e.g. Ginger Waste)" style="flex:2;margin-bottom:0;">
+                                <input type="number" class="form-input" placeholder="Kg" step="0.1" style="flex:1;margin-bottom:0;">
+                                <button onclick="this.parentElement.remove()" style="background:rgba(239,68,68,0.2);color:#ef4444;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;">?</button>
+                            </div>
+                            <div class="ingredient-row" style="display:flex;gap:8px;margin-bottom:6px;">
+                                <input type="text" class="form-input" placeholder="Waste item 2 (e.g. Turmeric Waste)" style="flex:2;margin-bottom:0;">
+                                <input type="number" class="form-input" placeholder="Kg" step="0.1" style="flex:1;margin-bottom:0;">
+                                <button onclick="this.parentElement.remove()" style="background:rgba(239,68,68,0.2);color:#ef4444;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;">?</button>
+                            </div>
+                        </div>
+                        <div style="display:flex;gap:8px;">
+                            <button class="btn btn-sm" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.2);" onclick="addTopCombinedIngredient()">+ Add Ingredient</button>
+                            <button class="btn btn-sm btn-primary" style="background:linear-gradient(135deg,#8b5cf6,#6d28d9);" onclick="submitTopCombinedHuman()">????? Submit & Compare with AI</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addTopCombinedIngredient() {
+            const container = document.getElementById('top-combined-ingredients');
+            const row = document.createElement('div');
+            row.className = 'ingredient-row';
+            row.style.cssText = 'display:flex;gap:8px;margin-bottom:6px;';
+            row.innerHTML = '<input type="text" class="form-input" placeholder="Ingredient name" style="flex:2;margin-bottom:0;"><input type="number" class="form-input" placeholder="Kg" step="0.1" style="flex:1;margin-bottom:0;"><button onclick="this.parentElement.remove()" style="background:rgba(239,68,68,0.2);color:#ef4444;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;">?</button>';
+            container.appendChild(row);
+        }
+
+        async function submitTopCombinedHuman() {
+            const product = document.getElementById('top-combined-product')?.value?.trim();
+            const use = document.getElementById('top-combined-use')?.value?.trim();
+            if (!product) { showToast('Enter a product name', 'error'); return; }
+            if (!use) { showToast('Enter a use case', 'error'); return; }
+            const rows = document.querySelectorAll('#top-combined-ingredients .ingredient-row');
+            const recipe = [];
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const name = inputs[0]?.value?.trim();
+                const kg = parseFloat(inputs[1]?.value) || 0;
+                if (name && kg > 0) recipe.push({ item: name, kg });
+            });
+            if (recipe.length < 2) { showToast('Add at least 2 ingredients for a combined product', 'error'); return; }
+
+            try {
+                const data = await api('/api/vm/predict/compare', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        item_name: 'Combined (' + recipe.map(r => r.item).join('+') + ')',
+                        quantity_kg: recipe.reduce((s, r) => s + r.kg, 0),
+                        human_suggestion: { product, use, recipe },
+                        auto_produce: true
+                    })
+                });
+                showToast(`?? ${product} ? Production order created! Winner: ${data.comparison_result.winner}`, 'success');
+                document.getElementById('topCombinedHumanForm').style.display = 'none';
+                loadCombinedPredictions(); loadStats();
+            } catch (err) { showToast(err.message || 'Failed', 'error'); }
+        }
+
+        // ===== AGGREGATION =====
+        async function loadAggregation() {
+            try {
+                const data = await api('/api/vm/aggregated');
+                const container = document.getElementById('aggregationList');
+                if (data.aggregated.length === 0) { container.innerHTML = '<div class="empty-state"><h3>No items to aggregate</h3><p>Send completed pickup items to inventory first</p></div>'; return; }
+
+                // Load combined predictions at top
+                let combinedHTML = '';
+                try {
+                    const combined = await api('/api/vm/predict/combined');
+                    if (combined.combined_predictions && combined.combined_predictions.length > 0) {
+                        combinedHTML = `
+                            <div style="margin-bottom:20px;background:linear-gradient(135deg,rgba(34,197,94,0.08),rgba(59,130,246,0.08));border:1px solid rgba(34,197,94,0.2);border-radius:12px;padding:16px;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                                    <div>
+                                        <div style="font-size:18px;font-weight:700;">?? AI Combined Product Predictions</div>
+                                        <div style="font-size:13px;color:var(--text-secondary);">AI analyzed all ${combined.available_items.length} inventory items and found ${combined.total_combinations} products by combining 2+ waste items</div>
+                                    </div>
+                                    <button class="btn btn-sm" style="background:rgba(168,85,247,0.2);color:#c084fc;border:1px solid rgba(168,85,247,0.3);" onclick="openCombinedHumanSuggest()">????? Human Combined Suggest</button>
+                                </div>
+                                <div id="combinedHumanForm" style="display:none;margin-bottom:14px;"></div>
+                                ${combined.combined_predictions.map((cp, idx) => `
+                                    <div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:12px;margin-bottom:10px;">
+                                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                                            <div>
+                                                <span class="confidence-badge ${cp.confidence}">${cp.confidence}</span>
+                                                <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Combines: ${cp.items_combined.map(i => '<strong>' + i + '</strong>').join(' + ')}</span>
+                                            </div>
+                                        </div>
+                                        <div style="font-size:15px;font-weight:700;margin:6px 0 3px;">${cp.product}</div>
+                                        <div style="font-size:12px;color:var(--text-secondary);">${cp.use}</div>
+                                        <div style="margin-top:8px;font-size:13px;display:flex;gap:14px;flex-wrap:wrap;">
+                                            <span>?? <strong>${cp.hours}h</strong></span>
+                                            <span>?? Cost: <strong>?${cp.cost_per_kg}/kg</strong></span>
+                                            <span>?? Sell: <strong>?${cp.sell_per_kg}/kg</strong></span>
+                                            <span style="color:#22c55e;">?? Profit: <strong>?${cp.profit_per_kg}/kg (${cp.profit_margin})</strong></span>
+                                        </div>
+                                        ${formatIngredients(cp.waste_ingredients, 'Waste Ingredients (FREE)', '??')}
+                                        ${formatIngredients(cp.extra_materials, 'Extra Materials to Purchase', '??')}
+                                        ${cp.extra_materials_cost > 0 ? '<div style="margin-top:6px;font-size:12px;color:#f59e0b;">?? Total Extra Cost: <strong>?' + cp.extra_materials_cost + '</strong></div>' : ''}
+                                        <div style="margin-top:10px;">
+                                            <button class="btn btn-sm btn-primary" onclick="sendCombinedToProduction('${cp.items_combined.join('+')}', '${cp.product.replace(/'/g, "\\'")}', '${cp.use.replace(/'/g, "\\'")}', ${cp.hours}, ${cp.extra_materials_cost || 0})">?? Send to Production</button>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    }
+                } catch (e) { console.log('No combined predictions yet'); }
+
+                container.innerHTML = combinedHTML + '<h3 style="margin:18px 0 12px;font-size:16px;color:var(--text-secondary);">?? Individual Item Predictions</h3>' + data.aggregated.map(a => `
+                    <div class="agg-card" id="agg-card-${a.item_key}">
+                        <div class="agg-header">
+                            <h4>${a.item_name}</h4>
+                            <div style="display:flex;gap:8px;">
+                                <button class="btn btn-sm btn-primary" id="ai-btn-${a.item_key}" onclick="runAIPrediction('${a.item_name.replace(/'/g, "\\'")}', ${a.total_kg}, this)">?? AI Predict</button>
+                                <button class="btn btn-sm" style="background:rgba(168,85,247,0.2);color:#c084fc;border:1px solid rgba(168,85,247,0.3);" onclick="openHumanSuggest('${a.item_name.replace(/'/g, "\\'")}', ${a.total_kg})">????? Human Suggest</button>
+                            </div>
+                        </div>
+                        <div class="agg-meta"><span>Total: <strong>${a.total_kg} kg</strong></span><span>Sources: <strong>${a.source_count}</strong></span><span>Shops: ${a.shops || 'N/A'}</span></div>
+                        <div id="pred-${a.item_key}"></div>
+                        <div id="human-${a.item_key}" style="display:none;"></div>
+                        <div id="compare-${a.item_key}"></div>
+                    </div>
+                `).join('');
+            } catch (err) { showToast('Failed to load aggregation', 'error'); }
+        }
+
+        function formatIngredients(ingredients, title, icon) {
+            if (!ingredients || ingredients.length === 0) return '';
+            return `
+                <div style="margin-top:10px;">
+                    <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">${icon} ${title}:</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        ${ingredients.map(r => `
+                            <span style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:4px 10px;font-size:12px;">
+                                ${r.item}: <strong>${r.kg}kg</strong>${r.cost !== undefined ? ` <span style="color:${r.cost > 0 ? '#f59e0b' : '#22c55e'};">?${r.cost || 0}</span>` : ''}
+                            </span>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        async function runAIPrediction(itemName, totalKg, btn) {
+            try {
+                if (btn) { btn.disabled = true; btn.textContent = '? Predicting...'; }
+                const data = await api(`/api/vm/predict/${encodeURIComponent(itemName)}`);
+                const itemKey = itemName.toLowerCase().trim();
+                const predBox = document.getElementById(`pred-${itemKey}`);
+
+                predBox.innerHTML = data.predictions.map(pred => `
+                    <div class="prediction-box" style="margin-top:10px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.2);border-radius:8px;padding:14px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span class="confidence-badge ${pred.confidence}">${pred.confidence} confidence</span>
+                            <span style="font-size:11px;color:var(--text-muted);">?? AI Prediction</span>
+                        </div>
+                        <div style="font-size:16px;font-weight:700;margin:8px 0 4px;">${pred.product}</div>
+                        <div style="font-size:13px;color:var(--text-secondary);">${pred.use}</div>
+                        <div style="margin-top:8px;font-size:13px;display:flex;gap:16px;flex-wrap:wrap;">
+                            <span>?? <strong>${pred.hours}h</strong></span>
+                            <span>?? Cost: <strong>?${pred.total_cost_per_kg}/kg</strong></span>
+                            <span>?? Sell: <strong>?${pred.selling_price_per_kg}/kg</strong></span>
+                            <span style="color:#22c55e;">?? Profit: <strong>?${pred.profit_per_kg}/kg (${pred.profit_margin})</strong></span>
+                        </div>
+                        ${formatIngredients(pred.waste_ingredients, 'Waste Ingredients (FREE)', '??')}
+                        ${formatIngredients(pred.extra_materials, 'Extra Materials to Purchase', '??')}
+                        ${pred.extra_materials_cost > 0 ? '<div style="margin-top:8px;font-size:13px;color:#f59e0b;">?? Total Extra Cost: <strong>?' + pred.extra_materials_cost + '</strong> (must be procured separately)</div>' : ''}
+                        <div style="margin-top:12px;">
+                            <button class="btn btn-primary btn-sm" onclick="sendToProduction('${itemName.replace(/'/g, "\\'")}', ${parseFloat(totalKg)}, '${pred.product.replace(/'/g, "\\'")}', '${pred.use.replace(/'/g, "\\'")}', ${pred.hours}, 'ai', ${pred.extra_materials_cost || 0})">?? Send to Production</button>
+                        </div>
+                    </div>
+                `).join('');
+
+                if (btn) { btn.textContent = '? Predicted'; }
+            } catch (err) { showToast('AI prediction failed', 'error'); if (btn) { btn.disabled = false; btn.textContent = '?? AI Predict'; } }
+        }
+
+        // ===== HUMAN SUGGEST (no cost/sell/hours — AI auto-estimates) =====
+        function openHumanSuggest(itemName, totalKg) {
+            const itemKey = itemName.toLowerCase().trim();
+            const humanBox = document.getElementById(`human-${itemKey}`);
+            humanBox.style.display = 'block';
+            humanBox.innerHTML = `
+                <div style="margin-top:10px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:8px;padding:14px;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+                        <span style="font-size:14px;font-weight:700;color:#c084fc;">????? Human Researcher Suggestion for ${itemName}</span>
+                        <button style="background:none;border:none;color:#ef4444;cursor:pointer;font-size:16px;" onclick="document.getElementById('human-${itemKey}').style.display='none'">?</button>
+                    </div>
+                    <div style="display:grid;gap:10px;">
+                        <input type="text" id="human-product-${itemKey}" class="form-input" placeholder="Product name (e.g. Banana Fiber Paper, Corn Starch Bags — NOT the raw waste name)" style="margin-bottom:0;">
+                        <input type="text" id="human-use-${itemKey}" class="form-input" placeholder="Use case (e.g. Eco-friendly packaging material for food industry)" style="margin-bottom:0;">
+                        <div style="font-size:11px;color:#f59e0b;padding:6px 10px;background:rgba(245,158,11,0.1);border-radius:6px;">
+                            ? AI will auto-estimate Cost, Selling Price, and Production Time based on your ingredients
+                        </div>
+                        <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-top:4px;">?? Ingredients needed to make this product:</div>
+                        <div id="human-ingredients-${itemKey}">
+                            <div class="ingredient-row" style="display:flex;gap:8px;margin-bottom:6px;">
+                                <input type="text" class="form-input" placeholder="Ingredient name" style="flex:2;margin-bottom:0;">
+                                <input type="number" class="form-input" placeholder="Kg" step="0.1" style="flex:1;margin-bottom:0;">
+                                <button onclick="this.parentElement.remove()" style="background:rgba(239,68,68,0.2);color:#ef4444;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:14px;">?</button>
+                            </div>
+                        </div>
+                        <button class="btn btn-sm" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.2);align-self:flex-start;" onclick="addHumanIngredient('${itemKey}')">+ Add Ingredient</button>
+                        <button class="btn btn-sm btn-primary" style="margin-top:4px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);" onclick="submitHumanSuggestion('${itemName.replace(/'/g, "\\'")}', ${totalKg}, '${itemKey}')">????? Compare with AI</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function addHumanIngredient(itemKey) {
+            const container = document.getElementById(`human-ingredients-${itemKey}`);
+            const row = document.createElement('div');
+            row.className = 'ingredient-row';
+            row.style.cssText = 'display:flex;gap:8px;margin-bottom:6px;';
+            row.innerHTML = `
+                <input type="text" class="form-input" placeholder="Ingredient name" style="flex:2;margin-bottom:0;">
+                <input type="number" class="form-input" placeholder="Kg" step="0.1" style="flex:1;margin-bottom:0;">
+                <button onclick="this.parentElement.remove()" style="background:rgba(239,68,68,0.2);color:#ef4444;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:14px;">?</button>
+            `;
+            container.appendChild(row);
+        }
+
+        async function submitHumanSuggestion(itemName, totalKg, itemKey) {
+            const product = document.getElementById(`human-product-${itemKey}`)?.value?.trim();
+            const use = document.getElementById(`human-use-${itemKey}`)?.value?.trim();
+
+            if (!product) { showToast('Please enter a product name', 'error'); return; }
+            if (!use) { showToast('Please enter a use case description', 'error'); return; }
+
+            const rows = document.querySelectorAll(`#human-ingredients-${itemKey} .ingredient-row`);
+            const recipe = [];
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const name = inputs[0]?.value?.trim();
+                const kg = parseFloat(inputs[1]?.value) || 0;
+                if (name && kg > 0) recipe.push({ item: name, kg });
+            });
+
+            if (recipe.length === 0) { showToast('Please add at least one ingredient', 'error'); return; }
+
+            try {
+                const data = await api('/api/vm/predict/compare', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        item_name: itemName,
+                        quantity_kg: totalKg,
+                        human_suggestion: { product, use, recipe },
+                        auto_produce: false
+                    })
+                });
+
+                // Hide the human form
+                document.getElementById(`human-${itemKey}`).style.display = 'none';
+
+                const compareBox = document.getElementById(`compare-${itemKey}`);
+                const ai = data.ai_prediction.best_product;
+                const human = data.human_prediction.suggestion;
+                const result = data.comparison_result;
+
+                compareBox.innerHTML = `
+                    <div style="margin-top:14px;background:rgba(34,197,94,0.06);border:1px solid rgba(34,197,94,0.15);border-radius:12px;padding:16px;">
+                        <div style="font-size:18px;font-weight:700;text-align:center;margin-bottom:14px;">?? ${result.winner}</div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                            <!-- AI Column -->
+                            <div style="background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.15);border-radius:8px;padding:14px;">
+                                <div style="font-size:14px;font-weight:700;color:#60a5fa;margin-bottom:8px;">?? AI (Score: ${result.ai_score}/100)</div>
+                                <div style="font-size:15px;font-weight:700;">${ai?.product || 'N/A'}</div>
+                                <div style="font-size:12px;color:var(--text-secondary);margin:4px 0 8px;">${ai?.use || ''}</div>
+                                <div style="font-size:13px;">
+                                    ?? Cost: ?${ai?.total_material_cost || 0} | ?? Revenue: ?${ai?.estimated_revenue || 0}<br>
+                                    ?? Profit: <strong style="color:#22c55e;">?${ai?.profit || 0} (${ai?.profit_margin || '0%'})</strong><br>
+                                    ?? ${ai?.hours || 0}h | ?? Extra cost: ?${ai?.extra_materials_cost || 0}
+                                </div>
+                                ${ai ? formatIngredients(ai.waste_ingredients, 'Waste (free)', '??') : ''}
+                                ${ai ? formatIngredients(ai.extra_materials, 'Extra to buy', '??') : ''}
+                                <button class="btn btn-sm btn-primary" style="margin-top:10px;width:100%;" onclick="sendToProduction('${itemName.replace(/'/g, "\\'")}', ${totalKg}, '${(ai?.product || '').replace(/'/g, "\\'")}', '${(ai?.use || '').replace(/'/g, "\\'")}', ${ai?.hours || 4}, 'ai', ${ai?.extra_materials_cost || 0})">?? Use AI Approach</button>
+                            </div>
+                            <!-- Human Column -->
+                            <div style="background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.15);border-radius:8px;padding:14px;">
+                                <div style="font-size:14px;font-weight:700;color:#c084fc;margin-bottom:8px;">????? Human (Score: ${result.human_score}/100)</div>
+                                <div style="font-size:15px;font-weight:700;">${human.product}</div>
+                                <div style="font-size:12px;color:var(--text-secondary);margin:4px 0 8px;">${human.use}</div>
+                                <div style="font-size:13px;">
+                                    ?? Cost: ?${human.total_material_cost} | ?? Revenue: ?${human.estimated_revenue}<br>
+                                    ?? Profit: <strong style="color:#22c55e;">?${human.profit} (${human.profit_margin})</strong><br>
+                                    ?? ${human.hours}h | ?? Extra cost: ?${human.extra_materials_cost}
+                                </div>
+                                <div style="margin-top:6px;font-size:11px;color:#60a5fa;background:rgba(59,130,246,0.1);padding:4px 8px;border-radius:4px;">
+                                    ? AI estimated: ?${human.ai_estimated?.cost_per_kg || '?'}/kg cost, ?${human.ai_estimated?.sell_per_kg || '?'}/kg sell, ${human.ai_estimated?.hours || '?'}h
+                                </div>
+                                ${formatIngredients(human.waste_ingredients, 'Waste (free)', '??')}
+                                ${formatIngredients(human.extra_materials, 'Extra to buy', '??')}
+                                <button class="btn btn-sm" style="margin-top:10px;width:100%;background:linear-gradient(135deg,#8b5cf6,#6d28d9);color:#fff;border:none;" onclick="sendToProduction('${itemName.replace(/'/g, "\\'")}', ${totalKg}, '${human.product.replace(/'/g, "\\'")}', '${human.use.replace(/'/g, "\\'")}', ${human.hours}, 'human', ${human.extra_materials_cost})">?? Use Human Approach</button>
+                            </div>
+                        </div>
+                        <div style="text-align:center;margin-top:10px;font-size:12px;color:var(--text-muted);">
+                            Scoring: Profit (40%) | Cost Efficiency (25%) | Speed (15%) | Fewer Extras (20%)
+                        </div>
+                    </div>
+                `;
+            } catch (err) { showToast(err.message || 'Comparison failed', 'error'); }
+        }
+
+        // ===== COMBINED HUMAN SUGGEST =====
+        function openCombinedHumanSuggest() {
+            const form = document.getElementById('combinedHumanForm');
+            if (form.style.display !== 'none') { form.style.display = 'none'; return; }
+            form.style.display = 'block';
+            form.innerHTML = `
+                <div style="background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.2);border-radius:8px;padding:14px;">
+                    <div style="font-size:13px;font-weight:700;color:#c084fc;margin-bottom:10px;">????? Suggest a Combined Product (from 2+ waste items)</div>
+                    <input type="text" id="combined-product" class="form-input" placeholder="Combined product name (e.g. Herbal Pain Relief Balm)" style="margin-bottom:8px;">
+                    <input type="text" id="combined-use" class="form-input" placeholder="Use case description" style="margin-bottom:8px;">
+                    <div style="font-size:12px;font-weight:600;color:var(--text-secondary);margin-bottom:6px;">?? Ingredients from multiple waste items:</div>
+                    <div id="combined-ingredients">
+                        <div class="ingredient-row" style="display:flex;gap:8px;margin-bottom:6px;">
+                            <input type="text" class="form-input" placeholder="Ingredient" style="flex:2;margin-bottom:0;">
+                            <input type="number" class="form-input" placeholder="Kg" step="0.1" style="flex:1;margin-bottom:0;">
+                            <button onclick="this.parentElement.remove()" style="background:rgba(239,68,68,0.2);color:#ef4444;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;">?</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.2);" onclick="addCombinedIngredient()">+ Add Ingredient</button>
+                    <button class="btn btn-sm btn-primary" style="margin-left:8px;background:linear-gradient(135deg,#8b5cf6,#6d28d9);" onclick="submitCombinedHuman()">????? Submit & Compare</button>
+                </div>
+            `;
+        }
+
+        function addCombinedIngredient() {
+            const container = document.getElementById('combined-ingredients');
+            const row = document.createElement('div');
+            row.className = 'ingredient-row';
+            row.style.cssText = 'display:flex;gap:8px;margin-bottom:6px;';
+            row.innerHTML = `
+                <input type="text" class="form-input" placeholder="Ingredient" style="flex:2;margin-bottom:0;">
+                <input type="number" class="form-input" placeholder="Kg" step="0.1" style="flex:1;margin-bottom:0;">
+                <button onclick="this.parentElement.remove()" style="background:rgba(239,68,68,0.2);color:#ef4444;border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;">?</button>
+            `;
+            container.appendChild(row);
+        }
+
+        async function submitCombinedHuman() {
+            const product = document.getElementById('combined-product')?.value?.trim();
+            const use = document.getElementById('combined-use')?.value?.trim();
+            if (!product) { showToast('Enter a product name', 'error'); return; }
+            if (!use) { showToast('Enter a use case', 'error'); return; }
+            const rows = document.querySelectorAll('#combined-ingredients .ingredient-row');
+            const recipe = [];
+            rows.forEach(row => {
+                const inputs = row.querySelectorAll('input');
+                const name = inputs[0]?.value?.trim();
+                const kg = parseFloat(inputs[1]?.value) || 0;
+                if (name && kg > 0) recipe.push({ item: name, kg });
+            });
+            if (recipe.length < 2) { showToast('Add at least 2 ingredients for a combined product', 'error'); return; }
+
+            try {
+                const data = await api('/api/vm/predict/compare', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        item_name: 'Combined (' + recipe.map(r => r.item).join('+') + ')',
+                        quantity_kg: recipe.reduce((s, r) => s + r.kg, 0),
+                        human_suggestion: { product, use, recipe },
+                        auto_produce: true
+                    })
+                });
+                showToast(`?? ${product} ? Production order created! Winner: ${data.comparison_result.winner}`, 'success');
+                document.getElementById('combinedHumanForm').style.display = 'none';
+                loadAggregation(); loadStats();
+            } catch (err) { showToast(err.message || 'Failed', 'error'); }
+        }
+
+        async function sendCombinedToProduction(items, product, use, hours, extraCost) {
+            try {
+                const data = await api('/api/vm/send-to-production', { method: 'POST', body: JSON.stringify({ item_name: items, total_kg: 0, predicted_product: product, predicted_use: use, estimated_hours: hours || 4, extra_cost: extraCost || 0 }) });
+                showToast(`?? ${data.message}`, 'success');
+                loadCombinedPredictions(); loadStats();
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        async function sendToProduction(itemName, totalKg, product, use, hours, approach, extraCost) {
+            try {
+                const data = await api('/api/vm/send-to-production', { method: 'POST', body: JSON.stringify({ item_name: itemName, total_kg: totalKg, predicted_product: product, predicted_use: use, estimated_hours: hours || 4, extra_cost: extraCost || 0 }) });
+                showToast(`?? ${data.message}`, 'success');
+                const itemKey = itemName.toLowerCase().trim();
+                const card = document.getElementById(`agg-card-${itemKey}`);
+                if (card) {
+                    card.style.transition = 'opacity 0.5s, transform 0.5s';
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateX(50px)';
+                    setTimeout(() => card.remove(), 500);
+                }
+                loadStats();
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        // ===== PRODUCTION WITH TIMERS =====
+        const DEMO_SPEED = 360;
+        async function loadProduction() {
+            try {
+                const data = await api('/api/vm/production');
+                const container = document.getElementById('productionList');
+                if (data.orders.length === 0) { container.innerHTML = '<div class="empty-state"><h3>No production orders</h3><p>Auto-created when items sent to inventory</p></div>'; return; }
+                container.innerHTML = `
+                    <table class="inv-table">
+                        <thead><tr><th>ID</th><th>Item</th><th>Total Kg</th><th>AI Product</th><th>Use Case</th><th>Timer</th><th>Status</th></tr></thead>
+                        <tbody>
+                            ${data.orders.map(o => {
+                    let timerHTML = '';
+                    if (o.status === 'in_production' && o.started_at && o.estimated_hours) {
+                        const startTime = new Date(o.started_at + 'Z').getTime();
+                        const elapsedHours = ((Date.now() - startTime) / 1000 / 3600) * DEMO_SPEED;
+                        const remaining = Math.max(0, o.estimated_hours - elapsedHours);
+                        const progress = Math.min(100, (elapsedHours / o.estimated_hours) * 100);
+                        if (remaining <= 0) { timerHTML = '<span class="prod-status-badge completed">Ready!</span>'; }
+                        else {
+                            const rH = Math.floor(remaining * 60 / 60), rM = Math.round(remaining * 60) % 60;
+                            timerHTML = `<span class="prod-status-badge in_production">${rH}h ${rM}m left</span><div style="height:4px;border-radius:2px;background:rgba(255,255,255,0.1);margin-top:4px;overflow:hidden;"><div style="height:100%;border-radius:2px;background:linear-gradient(90deg,#3b82f6,#22c55e);width:${progress}%"></div></div><div style="font-size:10px;color:var(--text-muted);margin-top:2px;">${o.estimated_hours}h total</div>`;
+                        }
+                    } else if (o.status === 'completed') { timerHTML = '<span class="prod-status-badge completed">Done</span>'; }
+                    else { timerHTML = `<span class="prod-status-badge pending">${o.estimated_hours || '?'}h wait</span>`; }
+                    return `<tr><td>#${o.id}</td><td><strong>${o.item_name}</strong></td><td>${o.total_kg} kg</td><td>${o.predicted_product || 'N/A'}</td><td style="max-width:250px;font-size:12px;color:var(--text-secondary);">${o.predicted_use || 'N/A'}</td><td>${timerHTML}</td><td>${o.status === 'pending' ? 'Pending' : o.status === 'in_production' ? 'Producing' : 'Completed'}</td></tr>`;
+                }).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) { showToast('Failed to load production orders', 'error'); }
+        }
+
+        // ===== PACKING =====
+        async function loadPacking() {
+            try {
+                const data = await api('/api/vm/packing');
+                const container = document.getElementById('packingList');
+                if (data.orders.length === 0) { container.innerHTML = '<div class="empty-state"><h3>No packing orders</h3><p>Auto-created when production timer completes</p></div>'; return; }
+                container.innerHTML = `
+                    <table class="inv-table">
+                        <thead><tr><th>ID</th><th>Product</th><th>Output Qty</th><th>From Item</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody>
+                            ${data.orders.map(o => `
+                                <tr>
+                                    <td>#${o.id}</td>
+                                    <td><strong>${o.product_name}</strong></td>
+                                    <td>${o.quantity_kg} kg</td>
+                                    <td>${o.source_item || o.source_raw_item || 'N/A'}</td>
+                                    <td><span class="prod-status-badge ${o.status}">${o.status}</span></td>
+                                    <td>
+                                        ${o.status === 'pending' ? `<button class="btn btn-sm btn-primary" onclick="updatePackingStatus(${o.id}, 'packing', this)">Start Packing</button>` : ''}
+                                        ${o.status === 'packing' ? `<button class="btn btn-sm btn-primary" onclick="updatePackingStatus(${o.id}, 'packed', this)">Mark Packed</button>` : ''}
+                                        ${o.status === 'packed' ? `<button class="btn btn-sm btn-primary" onclick="sendToWarehouse(${o.id}, '${(o.product_name || '').replace(/'/g, "\\'")}', ${o.quantity_kg}, this)">Send to Warehouse</button>` : ''}
+                                        ${o.status === 'dispatched' ? '<span style="color:#22c55e; font-weight:600;">In Warehouse</span>' : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) { showToast('Failed to load packing orders', 'error'); }
+        }
+
+        async function updatePackingStatus(id, status, btn) {
+            try {
+                if (btn) { btn.disabled = true; btn.textContent = 'Updating...'; }
+                await api(`/api/vm/packing/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+                showToast(`Packing status: ${status}`, 'success');
+                loadPacking(); loadWarehouse();
+            } catch (err) { showToast(err.message, 'error'); if (btn) { btn.disabled = false; } }
+        }
+
+        async function sendToWarehouse(packingId, productName, qty, btn) {
+            try {
+                if (btn) { btn.disabled = true; btn.textContent = 'Sending...'; }
+                await api('/api/vm/warehouse/add', { method: 'POST', body: JSON.stringify({ packing_order_id: packingId, product_name: productName, quantity_kg: qty }) });
+                showToast(`${productName} sent to warehouse!`, 'success');
+                loadPacking(); loadWarehouse();
+            } catch (err) { showToast(err.message, 'error'); if (btn) { btn.disabled = false; btn.textContent = 'Send to Warehouse'; } }
+        }
+
+        // ===== WAREHOUSE =====
+        async function loadWarehouse() {
+            try {
+                const data = await api('/api/vm/warehouse');
+                const container = document.getElementById('warehouseList');
+                if (data.stocks.length === 0) { container.innerHTML = '<div class="empty-state"><h3>Warehouse is empty</h3><p>Pack products and send them here</p></div>'; return; }
+
+                // Segregated view
+                let html = '<h3 style="margin-bottom:16px;">Product Segregation</h3>';
+                data.segregated.forEach(seg => {
+                    html += `
+                        <div class="seg-card">
+                            <div class="seg-header">
+                                <div><h4>${seg.product_name}</h4><small style="color:var(--text-muted);">${seg.category} | ${seg.batches} batch(es)</small></div>
+                                <div class="seg-count">${seg.total_kg} kg</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += '<h3 style="margin:24px 0 16px;">All Stock Items</h3>';
+                html += `<div class="glass-card-static" style="overflow-x:auto;">
+                    <table class="inv-table">
+                        <thead><tr><th>ID</th><th>Product</th><th>Qty</th><th>Batch</th><th>Category</th><th>Location</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody>
+                            ${data.stocks.map(s => `
+                                <tr>
+                                    <td>#${s.id}</td>
+                                    <td><strong>${s.product_name}</strong></td>
+                                    <td>${s.quantity_kg} kg</td>
+                                    <td>${s.batch_no || 'N/A'}</td>
+                                    <td>${s.category || 'General'}</td>
+                                    <td>${s.location || 'Main Warehouse'}</td>
+                                    <td><span class="prod-status-badge ${s.status === 'in_stock' ? 'completed' : s.status === 'reserved' ? 'in_production' : s.status === 'sold' ? 'completed' : 'pending'}">${s.status}</span></td>
+                                    <td>${s.status === 'in_stock' ? `<button class="btn btn-sm btn-primary" onclick="createSalesOrder(${s.id}, '${(s.product_name || '').replace(/'/g, "\\'")}', ${s.quantity_kg})">Create Sale</button>` : s.status === 'sold' ? '<span style="color:#22c55e;">Sold</span>' : s.status}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>`;
+
+                container.innerHTML = html;
+            } catch (err) { showToast('Failed to load warehouse', 'error'); }
+        }
+
+        // ===== SALES =====
+        async function createSalesOrder(warehouseId, productName, qty) {
+            const buyer = prompt('Enter buyer name:');
+            if (!buyer) return;
+            const contact = prompt('Buyer contact number:') || '';
+            const price = prompt('Selling price (Rs):') || '0';
+            try {
+                // Get first available driver
+                const driversData = await api('/api/vm/drivers');
+                const driverId = driversData.drivers.length > 0 ? driversData.drivers[0].id : null;
+                await api('/api/vm/sales/create', { method: 'POST', body: JSON.stringify({ warehouse_stock_id: warehouseId, product_name: productName, quantity_kg: qty, buyer_name: buyer, buyer_contact: contact, driver_id: driverId, selling_price: parseFloat(price) }) });
+                showToast(`Sales order created: ${productName} to ${buyer}`, 'success');
+                loadWarehouse(); loadSales();
+            } catch (err) { showToast(err.message, 'error'); }
+        }
+
+        async function loadSales() {
+            try {
+                const data = await api('/api/vm/sales');
+                const container = document.getElementById('salesList');
+                if (data.orders.length === 0) { container.innerHTML = '<div class="empty-state"><h3>No sales orders</h3><p>Create sales from warehouse stock</p></div>'; return; }
+                container.innerHTML = `
+                    <table class="inv-table">
+                        <thead><tr><th>ID</th><th>Product</th><th>Qty</th><th>Buyer</th><th>Contact</th><th>Driver</th><th>Price</th><th>Status</th><th>Action</th></tr></thead>
+                        <tbody>
+                            ${data.orders.map(o => `
+                                <tr>
+                                    <td>#${o.id}</td>
+                                    <td><strong>${o.product_name}</strong></td>
+                                    <td>${o.quantity_kg} kg</td>
+                                    <td>${o.buyer_name || 'N/A'}</td>
+                                    <td>${o.buyer_contact || 'N/A'}</td>
+                                    <td>${o.driver_name || 'Unassigned'}</td>
+                                    <td style="color:#22c55e; font-weight:700;">Rs.${(o.selling_price || 0).toLocaleString()}</td>
+                                    <td><span class="prod-status-badge ${o.status === 'sold' || o.status === 'delivered' ? 'completed' : o.status === 'dispatching' ? 'in_production' : 'pending'}">${o.status}</span></td>
+                                    <td>
+                                        ${o.status === 'pending' ? `<button class="btn btn-sm btn-primary" onclick="updateSalesStatus(${o.id}, 'dispatching', this)">Dispatch</button>` : ''}
+                                        ${o.status === 'dispatching' ? `<button class="btn btn-sm btn-primary" onclick="updateSalesStatus(${o.id}, 'delivered', this)">Delivered</button>` : ''}
+                                        ${o.status === 'delivered' ? `<button class="btn btn-sm btn-primary" onclick="updateSalesStatus(${o.id}, 'sold', this)">Mark Sold</button>` : ''}
+                                        ${o.status === 'sold' ? '<span style="color:#22c55e; font-weight:600;">Complete</span>' : ''}
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                `;
+            } catch (err) { showToast('Failed to load sales', 'error'); }
+        }
+
+        async function updateSalesStatus(id, status, btn) {
+            try {
+                if (btn) { btn.disabled = true; btn.textContent = 'Updating...'; }
+                await api(`/api/vm/sales/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+                showToast(`Sales status: ${status}`, 'success');
+                loadSales(); loadWarehouse();
+            } catch (err) { showToast(err.message, 'error'); if (btn) { btn.disabled = false; } }
+        }
+
+        // Auto-refresh production timers
+        setInterval(() => { if (document.getElementById('section-production')?.style.display !== 'none') loadProduction(); }, 5000);
+
+        // ===== INITIAL LOAD =====
+        loadStats();
+    </script>
+</body>
+
+</html>

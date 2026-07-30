@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Driver Dashboard — GreenCycle</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        .notif-bell {
+            position: relative;
+            cursor: pointer;
+            font-size: 22px;
+            padding: 8px;
+        }
+
+        .notif-bell .notif-count {
+            position: absolute;
+            top: 0;
+            right: 0;
+            background: #ef4444;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            min-width: 18px;
+            height: 18px;
+            border-radius: 9px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 4px;
+        }
+
+        .live-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background: #22c55e;
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+            margin-right: 6px;
+        }
+
+        .route-info {
+            background: rgba(59, 130, 246, 0.1);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            margin-top: 16px;
+            display: none;
+        }
+
+        .route-info h4 {
+            color: #60a5fa;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .route-info p {
+            font-size: 13px;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .action-flow {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .item-rows {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .item-row {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .item-row .form-input {
+            margin-bottom: 0;
+        }
+
+        .item-row .remove-item {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .shop-info-bar {
+            background: rgba(34, 197, 94, 0.08);
+            border: 1px solid rgba(34, 197, 94, 0.15);
+            border-radius: var(--radius-xs);
+            padding: 10px 14px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .shop-info-bar span {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-gradient"></div>
+
+    <button class="mobile-menu-btn" onclick="document.querySelector('.sidebar').classList.toggle('open')">☰</button>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2>♻️ GreenCycle</h2>
+                <span>Driver Portal</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="showSection('dashboard', this)">
+                    <span class="nav-icon">📊</span> Dashboard
+                </div>
+                <div class="nav-item" onclick="showSection('available', this)">
+                    <span class="nav-icon">📦</span> Available Pickups
+                    <span class="nav-badge" id="availableBadge" style="display:none">0</span>
+                </div>
+                <div class="nav-item" onclick="showSection('my-pickups', this)">
+                    <span class="nav-icon">🚛</span> My Assignments
+                </div>
+                <div class="nav-item" onclick="showSection('history', this)">
+                    <span class="nav-icon">📜</span> History
+                </div>
+                <div class="nav-item" onclick="showSection('notifications', this)">
+                    <span class="nav-icon">🔔</span> Notifications
+                    <span class="nav-badge" id="notifBadge" style="display:none">0</span>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">D</div>
+                    <div class="user-details">
+                        <h4 id="userName">Driver</h4>
+                        <span>🚛 Driver • <span class="live-dot"></span>Online</span>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+
+            <!-- ===== DASHBOARD ===== -->
+            <section id="section-dashboard">
+                <div class="page-header">
+                    <h1>Welcome, <span id="welcomeName">Driver</span>! 🚛</h1>
+                    <p><span class="live-dot"></span>You're online and ready to receive pickup requests</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🚛</div>
+                        <div class="stat-value" id="statActive">0</div>
+                        <div class="stat-label">Active Pickups</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">✅</div>
+                        <div class="stat-value" id="statCompleted">0</div>
+                        <div class="stat-label">Completed</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">♻️</div>
+                        <div class="stat-value" id="statKg">0</div>
+                        <div class="stat-label">Kg Collected</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔔</div>
+                        <div class="stat-value" id="statNotifs">0</div>
+                        <div class="stat-label">Unread Notifications</div>
+                    </div>
+                </div>
+
+                <h2 style="font-size:20px; margin-bottom:16px;">📍 Pickup Locations Map</h2>
+                <div class="glass-card-static">
+                    <div id="overviewMap" class="map-container" style="height:400px;"></div>
+                </div>
+            </section>
+
+            <!-- ===== AVAILABLE PICKUPS ===== -->
+            <section id="section-available" style="display:none;">
+                <div class="page-header">
+                    <h1>📦 Available Pickups</h1>
+                    <p>Accept pickup requests from shop owners near you</p>
+                </div>
+                <div id="availableList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- ===== MY PICKUPS ===== -->
+            <section id="section-my-pickups" style="display:none;">
+                <div class="page-header">
+                    <h1>🚛 My Assignments</h1>
+                    <p>Manage your accepted and in-transit pickups</p>
+                </div>
+                <div id="myPickupsList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- ===== HISTORY ===== -->
+            <section id="section-history" style="display:none;">
+                <div class="page-header">
+                    <h1>📜 Delivery History</h1>
+                    <p>Completed and delivered pickup tasks</p>
+                </div>
+                <div id="historyList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+            <!-- ===== NOTIFICATIONS ===== -->
+            <section id="section-notifications" style="display:none;">
+                <div class="page-header" style="display:flex; justify-content:space-between; align-items:flex-start;">
+                    <div>
+                        <h1>🔔 Notifications</h1>
+                        <p>Your recent alerts and updates</p>
+                    </div>
+                    <button class="btn btn-secondary btn-sm" onclick="markAllRead()">
+                        ✅ Mark All Read
+                    </button>
+                </div>
+                <div id="notificationsList">
+                    <div class="spinner"></div>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Direction Modal -->
+    <div class="modal-overlay" id="directionModal">
+        <div class="modal">
+            <h2>🗺️ Navigate to Shop</h2>
+            <div id="directionMapContainer" class="map-container" style="height:350px; margin-bottom:20px;"></div>
+            <div id="directionInfo" class="route-info" style="display:block;">
+                <h4>📍 Destination</h4>
+                <p id="directionAddress">Loading...</p>
+            </div>
+            <div style="display:flex; gap:12px; margin-top:20px;">
+                <a id="googleMapsLink" href="#" target="_blank" class="btn btn-primary" style="flex:1;">
+                    🗺️ Open in Google Maps
+                </a>
+                <button class="btn btn-secondary" onclick="closeDirectionModal()" style="flex:1;">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Collection Items Modal -->
+    <div class="modal-overlay" id="collectionModal">
+        <div class="modal" style="max-width:560px;">
+            <h2>📦 Itemize Collected Waste</h2>
+            <p style="color:var(--text-secondary); font-size:14px; margin-bottom:12px;">
+                Break down the waste you collected into individual items (e.g., 10kg Apple, 5kg Tomato).
+            </p>
+            <div id="weightTracker"
+                style="background:rgba(34,197,94,0.08); border:1px solid rgba(34,197,94,0.2); border-radius:8px; padding:12px 16px; margin-bottom:20px; display:flex; justify-content:space-between; align-items:center; font-size:14px;">
+                <span>📋 Requested: <strong id="requestedKgDisplay">0</strong> kg</span>
+                <span>⚖️ Collected: <strong id="collectedKgDisplay">0</strong> kg</span>
+                <span id="balanceStatus" style="font-weight:700;">📊 Balance: <span id="balanceKgDisplay">0</span>
+                    kg</span>
+            </div>
+            <input type="hidden" id="collectionRequestId">
+            <input type="hidden" id="collectionRequestedKg">
+            <div class="item-rows" id="itemRows">
+                <div class="item-row">
+                    <input type="text" class="form-input" placeholder="Item name (e.g. Apple)" style="flex:2;">
+                    <input type="number" class="form-input" placeholder="Kg" min="0.1" step="0.1" style="flex:1;"
+                        oninput="updateWeightTracker()">
+                    <button class="remove-item" onclick="this.parentElement.remove(); updateWeightTracker()">✕</button>
+                </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="addItemRow()" style="margin-bottom:24px;">
+                ➕ Add Another Item
+            </button>
+            <div style="display:flex; gap:12px;">
+                <button class="btn btn-primary" onclick="submitCollection()" style="flex:1;" id="submitCollectionBtn">
+                    ✅ Complete & Submit
+                </button>
+                <button class="btn btn-secondary" onclick="closeCollectionModal()" style="flex:1;">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/api.js"></script>
+    <script>
+        // ===== AUTH CHECK =====
+        const currentUser = requireAuth('driver');
+        if (!currentUser) { window.location.href = '/login.html'; }
+
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('welcomeName').textContent = currentUser.name.split(' ')[0];
+        document.getElementById('userAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+
+        // ===== SOCKET.IO =====
+        const socket = io();
+        socket.emit('join', { role: 'driver', userId: currentUser.id, name: currentUser.name });
+
+        socket.on('new_request', (data) => {
+            showToast(`🆕 New pickup! ${data.quantity_kg}kg of ${data.waste_type} from ${data.client_name}`, 'info');
+            loadAvailable();
+            loadStats();
+            // Update badge
+            const badge = document.getElementById('availableBadge');
+            const current = parseInt(badge.textContent) || 0;
+            badge.textContent = current + 1;
+            badge.style.display = 'flex';
+        });
+
+        // ===== NAVIGATION =====
+        function showSection(name, el) {
+            document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+            document.getElementById(`section-${name}`).style.display = 'block';
+
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (el) el.classList.add('active');
+
+            document.querySelector('.sidebar').classList.remove('open');
+
+            if (name === 'dashboard') initOverviewMap();
+            if (name === 'available') loadAvailable();
+            if (name === 'my-pickups') loadMyPickups();
+            if (name === 'history') loadHistory();
+            if (name === 'notifications') loadNotifications();
+        }
+
+        // ===== STATS =====
+        async function loadStats() {
+            try {
+                const data = await api('/api/driver/stats');
+                document.getElementById('statActive').textContent = data.stats.activePickups;
+                document.getElementById('statCompleted').textContent = data.stats.completed;
+                document.getElementById('statKg').textContent = data.stats.totalKgCollected;
+                document.getElementById('statNotifs').textContent = data.stats.unreadNotifications;
+
+                if (data.stats.unreadNotifications > 0) {
+                    document.getElementById('notifBadge').textContent = data.stats.unreadNotifications;
+                    document.getElementById('notifBadge').style.display = 'flex';
+                }
+            } catch (err) {
+                console.error('Stats error:', err);
+            }
+        }
+
+        // ===== OVERVIEW MAP =====
+        let overviewMap;
+        function initOverviewMap() {
+            if (overviewMap) {
+                setTimeout(() => overviewMap.invalidateSize(), 200);
+                return;
+            }
+
+            overviewMap = L.map('overviewMap').setView([13.0827, 80.2707], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(overviewMap);
+
+            setTimeout(() => overviewMap.invalidateSize(), 300);
+            loadMapMarkers();
+        }
+
+        async function loadMapMarkers() {
+            try {
+                const data = await api('/api/driver/requests');
+                if (overviewMap && data.requests.length > 0) {
+                    const bounds = [];
+                    data.requests.forEach(r => {
+                        if (r.client_lat && r.client_lng) {
+                            const marker = L.marker([r.client_lat, r.client_lng]).addTo(overviewMap);
+                            marker.bindPopup(`
+                <strong>${wasteIcon(r.waste_type)} ${r.quantity_kg}kg ${r.waste_type}</strong><br>
+                📍 ${r.client_address || r.client_shop_address || 'Shop location'}<br>
+                👤 ${r.client_name}<br>
+                <em>${statusBadge(r.status)}</em>
+              `);
+                            bounds.push([r.client_lat, r.client_lng]);
+                        }
+                    });
+                    if (bounds.length > 0) {
+                        overviewMap.fitBounds(bounds, { padding: [40, 40] });
+                    }
+                }
+            } catch (err) {
+                console.error('Map markers error:', err);
+            }
+        }
+
+        // ===== AVAILABLE PICKUPS =====
+        async function loadAvailable() {
+            try {
+                const data = await api('/api/driver/requests');
+                const container = document.getElementById('availableList');
+
+                // Update badge
+                const badge = document.getElementById('availableBadge');
+                if (data.requests.length > 0) {
+                    badge.textContent = data.requests.length;
+                    badge.style.display = 'flex';
+                } else {
+                    badge.style.display = 'none';
+                }
+
+                if (data.requests.length === 0) {
+                    container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">📭</div>
+              <h3>No pickups available</h3>
+              <p>New requests will appear here in real-time. Stay online!</p>
+            </div>
+          `;
+                    return;
+                }
+
+                container.innerHTML = `
+          <div class="request-cards">
+            ${data.requests.map(r => `
+              <div class="request-card">
+                <div class="request-card-header">
+                  <h3>${wasteIcon(r.waste_type)} ${r.waste_type} Waste</h3>
+                  ${statusBadge(r.status)}
+                </div>
+                <div class="shop-info-bar">
+                  <span>🏪 <strong>${r.client_shop_name || r.client_shop_name_user || 'Shop'}</strong></span>
+                  <span>📍 ${r.client_address || r.client_shop_address || 'N/A'}</span>
+                  <span>📮 ${r.client_pincode || r.client_shop_pincode || 'N/A'}</span>
+                </div>
+                <div class="request-card-body">
+                  <div class="request-detail">
+                    <span class="detail-icon">⚖️</span>
+                    <span><strong>${r.quantity_kg} kg</strong></span>
+                  </div>
+                  <div class="request-detail">
+                    <span class="detail-icon">👤</span>
+                    <span>${r.client_name} ${r.client_phone ? '• ' + r.client_phone : ''}</span>
+                  </div>
+                  ${r.description ? `<div class="request-detail">
+                    <span class="detail-icon">📝</span>
+                    <span>${r.description}</span>
+                  </div>` : ''}
+                  <div class="request-detail">
+                    <span class="detail-icon">🕐</span>
+                    <span>${formatDate(r.created_at)}</span>
+                  </div>
+                </div>
+                <div class="request-card-actions">
+                  <button class="btn btn-primary btn-sm" onclick="acceptRequest(${r.id})">
+                    ✅ Accept Pickup
+                  </button>
+                  <button class="btn btn-secondary btn-sm" onclick="showDirections(${r.client_lat}, ${r.client_lng}, '${(r.client_address || r.client_shop_address || '').replace(/'/g, "\\'")}')">
+                    📍 View Location
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+            } catch (err) {
+                showToast('Failed to load pickups', 'error');
+            }
+        }
+
+        // ===== MY PICKUPS =====
+        async function loadMyPickups() {
+            try {
+                const data = await api('/api/driver/requests?status=my');
+                const container = document.getElementById('myPickupsList');
+
+                if (data.requests.length === 0) {
+                    container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">🚛</div>
+              <h3>No active assignments</h3>
+              <p>Accept a pickup request to see it here</p>
+            </div>
+          `;
+                    return;
+                }
+
+                container.innerHTML = `
+          <div class="request-cards">
+            ${data.requests.map(r => `
+              <div class="request-card">
+                <div class="request-card-header">
+                  <h3>${wasteIcon(r.waste_type)} ${r.waste_type} Waste</h3>
+                  ${statusBadge(r.status)}
+                </div>
+                <div class="shop-info-bar">
+                  <span>🏪 <strong>${r.client_shop_name || 'Shop'}</strong></span>
+                  <span>📍 ${r.client_address || 'N/A'}</span>
+                  <span>📮 ${r.client_pincode || 'N/A'}</span>
+                </div>
+                <div class="request-card-body">
+                  <div class="request-detail">
+                    <span class="detail-icon">⚖️</span>
+                    <span><strong>${r.quantity_kg} kg</strong></span>
+                  </div>
+                  <div class="request-detail">
+                    <span class="detail-icon">👤</span>
+                    <span>${r.client_name} ${r.client_phone ? '• ' + r.client_phone : ''}</span>
+                  </div>
+                  <div class="request-detail">
+                    <span class="detail-icon">🕐</span>
+                    <span>Updated: ${formatDate(r.updated_at)}</span>
+                  </div>
+                </div>
+                <div class="action-flow">
+                  ${r.status === 'assigned' ? `
+                    <button class="btn btn-accent btn-sm" onclick="markInTransit(${r.id})">
+                      🏃 Start Transit
+                    </button>
+                  ` : ''}
+                  ${r.status === 'in_transit' ? `
+                    <button class="btn btn-primary btn-sm" onclick="openCollectionModal(${r.id}, ${r.quantity_kg})">
+                      ✅ Complete Pickup
+                    </button>
+                  ` : ''}
+                  ${r.status !== 'completed' ? `
+                    <button class="btn btn-secondary btn-sm" onclick="showDirections(${r.client_lat}, ${r.client_lng}, '${(r.client_address || '').replace(/'/g, "\\'")}')">
+                      🗺️ Navigate
+                    </button>
+                  ` : ''}\n                  ${r.status === 'completed' ? `
+                    <button class="btn btn-primary btn-sm" style="background:linear-gradient(135deg,#22c55e,#16a34a);" onclick="showPlantDelivery({lat:11.0168,lng:76.9558,name:'GreenCycle Production Plant',address:'SIDCO Industrial Estate, Coimbatore - 641021'}, ${r.id})">
+                      🏭 Deliver to Plant
+                    </button>
+                  ` : ''}
+                  ${r.status === 'delivered' ? `
+                    <span style="display:inline-block;padding:6px 16px;border-radius:8px;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;font-weight:600;font-size:12px;">✅ Delivered to Plant</span>
+                  ` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+            } catch (err) {
+                showToast('Failed to load assignments', 'error');
+            }
+        }
+
+        // ===== ACTIONS =====
+        async function acceptRequest(id) {
+            try {
+                const data = await api(`/api/driver/requests/${id}/accept`, { method: 'PUT' });
+                showToast('Pickup accepted! Navigate to the shop location.', 'success');
+                loadAvailable();
+                loadMyPickups();
+                loadStats();
+
+                // Show directions
+                if (data.request.client_lat && data.request.client_lng) {
+                    showDirections(data.request.client_lat, data.request.client_lng, data.request.client_address);
+                }
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function markInTransit(id) {
+            try {
+                await api(`/api/driver/requests/${id}/transit`, { method: 'PUT' });
+                showToast('Status updated! You\'re on your way.', 'success');
+                loadMyPickups();
+                loadStats();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        async function completePickup(id) {
+            if (!confirm('Confirm that you have collected the waste?')) return;
+            try {
+                await api(`/api/driver/requests/${id}/complete`, { method: 'PUT', body: JSON.stringify({ items: [] }) });
+                showToast('Pickup completed! Great job! ♻️', 'success');
+                loadMyPickups();
+                loadStats();
+            } catch (err) {
+                showToast(err.message, 'error');
+            }
+        }
+
+        // ===== COLLECTION MODAL =====
+        function openCollectionModal(requestId, totalKg) {
+            document.getElementById('collectionRequestId').value = requestId;
+            document.getElementById('collectionRequestedKg').value = totalKg;
+            document.getElementById('requestedKgDisplay').textContent = totalKg;
+            document.getElementById('collectedKgDisplay').textContent = '0';
+            document.getElementById('balanceKgDisplay').textContent = totalKg;
+            document.getElementById('balanceStatus').style.color = '#ef4444';
+            document.getElementById('collectionModal').classList.add('active');
+            // Reset items
+            document.getElementById('itemRows').innerHTML = `
+                <div class="item-row">
+                    ${buildItemSelect()}
+                    <input type="number" class="form-input" placeholder="Kg" min="0.1" step="0.1" style="flex:1;" oninput="updateWeightTracker()">
+                    <button class="remove-item" onclick="this.parentElement.remove(); updateWeightTracker()">✕</button>
+                </div>
+            `;
+        }
+
+        // Valid waste items list
+        const VALID_ITEMS = [
+            'Apple', 'Orange', 'Banana', 'Mango', 'Grape', 'Papaya', 'Guava', 'Pineapple', 'Watermelon', 'Pomegranate', 'Lemon', 'Coconut', 'Jackfruit', 'Sapota',
+            'Tomato', 'Potato', 'Onion', 'Carrot', 'Cabbage', 'Spinach', 'Brinjal', 'Cauliflower', 'Beetroot', 'Radish', 'Beans', 'Capsicum', 'Cucumber', 'Pumpkin', 'Drumstick', 'Ladies Finger',
+            'Turmeric', 'Ginger', 'Garlic', 'Chili', 'Coriander', 'Curry Leaves', 'Mint',
+            'Sugarcane', 'Wheat', 'Rice', 'Corn', 'Millet',
+            'Dairy Waste', 'Bread Waste', 'Cooked Food', 'Mixed Waste', 'Flower Waste', 'Leaf Waste'
+        ];
+
+        function buildItemSelect() {
+            return `<select class="form-input" style="flex:2;">
+                <option value="">-- Select Item --</option>
+                <optgroup label="🍎 Fruits">
+                    ${['Apple', 'Orange', 'Banana', 'Mango', 'Grape', 'Papaya', 'Guava', 'Pineapple', 'Watermelon', 'Pomegranate', 'Lemon', 'Coconut', 'Jackfruit', 'Sapota'].map(i => `<option value="${i}">${i}</option>`).join('')}
+                </optgroup>
+                <optgroup label="🥕 Vegetables">
+                    ${['Tomato', 'Potato', 'Onion', 'Carrot', 'Cabbage', 'Spinach', 'Brinjal', 'Cauliflower', 'Beetroot', 'Radish', 'Beans', 'Capsicum', 'Cucumber', 'Pumpkin', 'Drumstick', 'Ladies Finger'].map(i => `<option value="${i}">${i}</option>`).join('')}
+                </optgroup>
+                <optgroup label="🌿 Spices & Herbs">
+                    ${['Turmeric', 'Ginger', 'Garlic', 'Chili', 'Coriander', 'Curry Leaves', 'Mint'].map(i => `<option value="${i}">${i}</option>`).join('')}
+                </optgroup>
+                <optgroup label="🌾 Grains & Others">
+                    ${['Sugarcane', 'Wheat', 'Rice', 'Corn', 'Millet'].map(i => `<option value="${i}">${i}</option>`).join('')}
+                </optgroup>
+                <optgroup label="🗑️ Mixed Waste">
+                    ${['Dairy Waste', 'Bread Waste', 'Cooked Food', 'Mixed Waste', 'Flower Waste', 'Leaf Waste'].map(i => `<option value="${i}">${i}</option>`).join('')}
+                </optgroup>
+            </select>`;
+        }
+
+        function updateWeightTracker() {
+            const requestedKg = parseFloat(document.getElementById('collectionRequestedKg').value) || 0;
+            const rows = document.querySelectorAll('#itemRows .item-row');
+            let collectedKg = 0;
+            rows.forEach(row => {
+                const qtyInput = row.querySelector('input[type="number"]');
+                collectedKg += parseFloat(qtyInput?.value) || 0;
+            });
+            document.getElementById('collectedKgDisplay').textContent = collectedKg.toFixed(1);
+            const balance = requestedKg - collectedKg;
+            const balanceEl = document.getElementById('balanceStatus');
+            if (collectedKg > requestedKg) {
+                // OVERCOLLECTION — mark red and warn
+                balanceEl.style.color = '#ef4444';
+                balanceEl.innerHTML = `🚫 Over by ${(collectedKg - requestedKg).toFixed(1)} kg! Max: ${requestedKg} kg`;
+            } else if (balance <= 0) {
+                balanceEl.style.color = '#22c55e';
+                balanceEl.innerHTML = '✅ Fully collected';
+            } else {
+                balanceEl.style.color = '#f59e0b';
+                balanceEl.innerHTML = `⚠️ Balance: ${balance.toFixed(1)} kg remaining`;
+            }
+        }
+
+        function closeCollectionModal() {
+            document.getElementById('collectionModal').classList.remove('active');
+        }
+
+        document.getElementById('collectionModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeCollectionModal();
+        });
+
+        function addItemRow() {
+            const container = document.getElementById('itemRows');
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            row.innerHTML = `
+                ${buildItemSelect()}
+                <input type="number" class="form-input" placeholder="Kg" min="0.1" step="0.1" style="flex:1;" oninput="updateWeightTracker()">
+                <button class="remove-item" onclick="this.parentElement.remove(); updateWeightTracker()">✕</button>
+            `;
+            container.appendChild(row);
+        }
+
+        async function submitCollection() {
+            const requestId = document.getElementById('collectionRequestId').value;
+            const requestedKg = parseFloat(document.getElementById('collectionRequestedKg').value) || 0;
+            const rows = document.querySelectorAll('#itemRows .item-row');
+            const items = [];
+
+            rows.forEach(row => {
+                const select = row.querySelector('select');
+                const qtyInput = row.querySelector('input[type="number"]');
+                const itemName = select ? select.value : '';
+                const qty = parseFloat(qtyInput?.value || 0);
+                if (itemName && qty > 0) {
+                    items.push({ item_name: itemName, quantity_kg: qty });
+                }
+            });
+
+            if (items.length === 0) {
+                showToast('Please select at least one item and enter its weight', 'error');
+                return;
+            }
+
+            // Check if any item has no name selected
+            const emptyNames = items.filter(i => !i.item_name);
+            if (emptyNames.length > 0) {
+                showToast('Please select an item name for all rows', 'error');
+                return;
+            }
+
+            // Weight validation — STRICT: collected must EQUAL requested (no more, no less)
+            const collectedKg = items.reduce((sum, i) => sum + i.quantity_kg, 0);
+
+            if (collectedKg > requestedKg) {
+                showToast(`🚫 Overcollection! You entered ${collectedKg.toFixed(1)} kg but only ${requestedKg} kg was requested. Remove excess weight.`, 'error');
+                return;
+            }
+
+            if (collectedKg < requestedKg) {
+                showToast(`⚠️ Under-collected! You entered ${collectedKg.toFixed(1)} kg but ${requestedKg} kg was requested. Collect the remaining ${(requestedKg - collectedKg).toFixed(1)} kg.`, 'error');
+                return;
+            }
+
+            const btn = document.getElementById('submitCollectionBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ Submitting...';
+
+            try {
+                const result = await api(`/api/driver/requests/${requestId}/complete`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ items })
+                });
+                closeCollectionModal();
+
+                // If backend says deliver to plant, show plant navigation
+                if (result.deliverToPlant && result.plant) {
+                    showToast('✅ Pickup done! Now deliver goods to the production plant.', 'success');
+                    showPlantDelivery(result.plant, result.requestId);
+                } else {
+                    showToast('Pickup completed! ♻️', 'success');
+                }
+                loadMyPickups();
+                loadAvailable();
+                loadStats();
+            } catch (err) {
+                showToast(err.message || 'Failed to submit collection', 'error');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '✅ Complete & Submit';
+            }
+        }
+
+        // ===== PLANT DELIVERY (after pickup completion) =====
+        function showPlantDelivery(plant, requestId) {
+            // Reuse direction modal but with plant info + Arrived button
+            const modal = document.getElementById('directionModal');
+            modal.classList.add('active');
+            document.getElementById('directionAddress').innerHTML = `
+                <strong>🏭 ${plant.name}</strong><br>${plant.address}<br>
+                <span style="color:#f59e0b;font-size:13px;">⚠️ Deliver goods and click "Arrived" when you reach the plant</span>
+            `;
+            document.getElementById('googleMapsLink').href =
+                `https://www.google.com/maps/dir/?api=1&destination=${plant.lat},${plant.lng}`;
+
+            // Add Arrived button
+            let arrivedBtn = document.getElementById('arrivedAtPlantBtn');
+            if (!arrivedBtn) {
+                arrivedBtn = document.createElement('button');
+                arrivedBtn.id = 'arrivedAtPlantBtn';
+                arrivedBtn.className = 'btn btn-primary';
+                arrivedBtn.style.cssText = 'flex:1;background:linear-gradient(135deg,#22c55e,#16a34a);';
+                document.getElementById('googleMapsLink').parentElement.appendChild(arrivedBtn);
+            }
+            arrivedBtn.textContent = '🏭 Arrived at Plant';
+            arrivedBtn.style.display = 'block';
+            arrivedBtn.onclick = async () => {
+                arrivedBtn.disabled = true;
+                arrivedBtn.textContent = '⏳ Notifying plant...';
+                try {
+                    const r = await api('/api/driver/arrived-at-plant', { method: 'PUT' });
+                    showToast(r.message, 'success');
+                    closeDirectionModal();
+                    arrivedBtn.style.display = 'none';
+                    loadMyPickups();
+                    loadAvailable();
+                    loadStats();
+                    // Driver is now free — they can accept new tasks immediately
+                } catch (e) {
+                    showToast(e.message || 'Failed', 'error');
+                    arrivedBtn.disabled = false;
+                    arrivedBtn.textContent = '🏭 Arrived at Plant';
+                }
+            };
+
+            setTimeout(() => {
+                if (directionMap) directionMap.remove();
+                directionMap = L.map('directionMapContainer').setView([plant.lat, plant.lng], 14);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(directionMap);
+                L.marker([plant.lat, plant.lng]).addTo(directionMap)
+                    .bindPopup(`<strong>🏭 ${plant.name}</strong><br>${plant.address}`)
+                    .openPopup();
+            }, 300);
+        }
+
+        // ===== DIRECTION MODAL =====
+        let directionMap;
+
+        function showDirections(lat, lng, address) {
+            const modal = document.getElementById('directionModal');
+            modal.classList.add('active');
+            document.getElementById('directionAddress').textContent = address || `Lat: ${lat}, Lng: ${lng}`;
+
+            // Google Maps link
+            document.getElementById('googleMapsLink').href =
+                `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+
+            setTimeout(() => {
+                if (directionMap) {
+                    directionMap.remove();
+                }
+
+                directionMap = L.map('directionMapContainer').setView([lat, lng], 15);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap'
+                }).addTo(directionMap);
+
+                L.marker([lat, lng]).addTo(directionMap)
+                    .bindPopup(`<strong>📍 Shop Location</strong><br>${address || 'Pickup point'}`)
+                    .openPopup();
+
+                // Add a circle around the location
+                L.circle([lat, lng], {
+                    color: '#22c55e',
+                    fillColor: '#22c55e',
+                    fillOpacity: 0.1,
+                    radius: 200
+                }).addTo(directionMap);
+
+                directionMap.invalidateSize();
+            }, 200);
+        }
+
+        function closeDirectionModal() {
+            document.getElementById('directionModal').classList.remove('active');
+            if (directionMap) {
+                directionMap.remove();
+                directionMap = null;
+            }
+        }
+
+        // Close modal on overlay click
+        document.getElementById('directionModal').addEventListener('click', (e) => {
+            if (e.target === e.currentTarget) closeDirectionModal();
+        });
+
+        // ===== NOTIFICATIONS =====
+        async function loadNotifications() {
+            try {
+                const data = await api('/api/driver/notifications');
+                const container = document.getElementById('notificationsList');
+
+                if (data.notifications.length === 0) {
+                    container.innerHTML = `
+            <div class="empty-state">
+              <div class="empty-icon">🔔</div>
+              <h3>No notifications yet</h3>
+              <p>You'll receive alerts when new pickup requests come in</p>
+            </div>
+          `;
+                    return;
+                }
+
+                container.innerHTML = `
+          <div class="notification-list">
+            ${data.notifications.map(n => `
+              <div class="notification-item ${n.is_read ? '' : 'unread'}">
+                <div class="notification-icon">
+                  ${n.type === 'new_request' ? '📦' : n.type === 'request_accepted' ? '✅' : '🔔'}
+                </div>
+                <div class="notification-content">
+                  <p>${n.message}</p>
+                  <span class="notification-time">${formatDate(n.created_at)}</span>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `;
+            } catch (err) {
+                showToast('Failed to load notifications', 'error');
+            }
+        }
+
+        async function markAllRead() {
+            try {
+                await api('/api/driver/notifications/read', { method: 'PUT' });
+                showToast('Notifications marked as read', 'success');
+                loadNotifications();
+                loadStats();
+                document.getElementById('notifBadge').style.display = 'none';
+            } catch (err) {
+                showToast('Failed to update notifications', 'error');
+            }
+        }
+
+        // ===== HISTORY =====
+        async function loadHistory() {
+            try {
+                const data = await api('/api/driver/requests?status=history');
+                const container = document.getElementById('historyList');
+
+                if (data.requests.length === 0) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <div class="empty-icon">📜</div>
+                            <h3>No history yet</h3>
+                            <p>Completed deliveries will appear here</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = `
+                    <div class="request-cards">
+                        ${data.requests.map(r => `
+                            <div class="request-card" style="opacity:0.85;">
+                                <div class="request-card-header">
+                                    <h3>${wasteIcon(r.waste_type)} ${r.waste_type} Waste</h3>
+                                    <span style="display:inline-block;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600;background:rgba(34,197,94,0.15);color:#22c55e;">✅ ${r.status === 'delivered' ? 'DELIVERED' : r.status.toUpperCase()}</span>
+                                </div>
+                                <div class="shop-info-bar">
+                                    <span>🏪 <strong>${r.client_shop_name || 'Shop'}</strong></span>
+                                    <span>📍 ${r.client_address || 'N/A'}</span>
+                                </div>
+                                <div class="request-card-body">
+                                    <div class="request-detail">
+                                        <span class="detail-icon">⚖️</span>
+                                        <span><strong>${r.quantity_kg} kg</strong></span>
+                                    </div>
+                                    <div class="request-detail">
+                                        <span class="detail-icon">👤</span>
+                                        <span>${r.client_name}</span>
+                                    </div>
+                                    <div class="request-detail">
+                                        <span class="detail-icon">🕐</span>
+                                        <span>Completed: ${formatDate(r.updated_at)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                `;
+            } catch (err) {
+                showToast('Failed to load history', 'error');
+            }
+        }
+
+        // ===== INITIAL LOAD =====
+        loadStats();
+        setTimeout(initOverviewMap, 300);
+        loadAvailable();
+    </script>
+</body>
+
+</html>

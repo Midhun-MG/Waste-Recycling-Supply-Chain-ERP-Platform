@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Production Employee - GreenCycle</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .task-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 14px;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-header h3 {
+            margin: 0;
+            font-size: 17px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .badge-pending {
+            background: rgba(234, 179, 8, 0.15);
+            color: #eab308;
+        }
+
+        .badge-in_production,
+        .badge-processing {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .badge-completed {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .badge-received {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-box {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-box .num {
+            font-size: 32px;
+            font-weight: 800;
+            color: #22c55e;
+        }
+
+        .stat-box .label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            text-transform: uppercase;
+        }
+
+        .delivery-card {
+            background: var(--glass-bg);
+            border: 2px solid rgba(34, 197, 94, 0.3);
+            border-radius: 14px;
+            padding: 20px;
+            margin-bottom: 14px;
+            animation: pulse-border 2s infinite;
+        }
+
+        @keyframes pulse-border {
+
+            0%,
+            100% {
+                border-color: rgba(34, 197, 94, 0.3);
+            }
+
+            50% {
+                border-color: rgba(34, 197, 94, 0.8);
+            }
+        }
+
+        .btn-confirm {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn-confirm:hover {
+            transform: scale(1.03);
+        }
+
+        .btn-start {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-complete {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .inv-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .inv-table th,
+        .inv-table td {
+            padding: 10px 14px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .inv-table th {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1px;
+        }
+
+        .notif-pulse {
+            position: relative;
+        }
+
+        .notif-pulse::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            right: -2px;
+            width: 10px;
+            height: 10px;
+            background: #ef4444;
+            border-radius: 50%;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.3;
+            }
+        }
+
+        @media(max-width:768px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-gradient"></div>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2>GreenCycle</h2><span>PRODUCTION DEPT</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="showSection('deliveries', this)"><span class="nav-icon">🚛 Incoming
+                        Deliveries</span><span id="deliveryBadge"
+                        style="display:none;background:#ef4444;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;margin-left:8px;">0</span>
+                </div>
+                <div class="nav-item" onclick="showSection('inventory', this)"><span class="nav-icon">📦 Inventory</span>
+                </div>
+                <div class="nav-item" onclick="showSection('tasks', this)"><span class="nav-icon">🏭 My Tasks</span></div>
+                <div class="nav-item" onclick="showSection('all', this)"><span class="nav-icon">📋 All Orders</span></div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">E</div>
+                    <div class="user-details">
+                        <h4 id="userName">Employee</h4><span>Production</span>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <!-- Incoming Deliveries (Primary Section) -->
+            <section id="section-deliveries">
+                <div class="page-header">
+                    <h1>🚛 Incoming Deliveries</h1>
+                    <p>Drivers arriving with waste goods. Go collect and click <strong>"✅ Goods Received"</strong> to
+                        store in inventory.</p>
+                    <p style="color:#f59e0b;font-size:13px;">⚠️ Driver cannot get next order until you confirm receipt!
+                    </p>
+                </div>
+                <div class="stats-row" id="deliveryStats"></div>
+                <div id="deliveriesList"></div>
+            </section>
+
+            <!-- Current Inventory -->
+            <section id="section-inventory" style="display:none;">
+                <div class="page-header">
+                    <h1>📦 Current Inventory</h1>
+                    <p>Incoming and processing items in stock</p>
+                </div>
+                <div class="glass-card-static" style="overflow-x:auto;">
+                    <table class="inv-table">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Qty (kg)</th>
+                                <th>Source</th>
+                                <th>Driver</th>
+                                <th>Status</th>
+                                <th>Received</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTable"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <!-- My Production Tasks -->
+            <section id="section-tasks" style="display:none;">
+                <div class="page-header">
+                    <h1>🏭 My Production Tasks</h1>
+                    <p>Auto-assigned by AI when waste arrives</p>
+                </div>
+                <div class="stats-row" id="taskStats"></div>
+                <div id="tasksList"></div>
+            </section>
+
+            <!-- All Orders -->
+            <section id="section-all" style="display:none;">
+                <div class="page-header">
+                    <h1>📋 All Production Orders</h1>
+                </div>
+                <div id="allOrdersList"></div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/api.js"></script>
+    <script>
+        const currentUser = requireAuth('production_employee');
+        if (!currentUser) { window.location.href = '/login.html'; }
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('userAvatar').textContent = currentUser.name.charAt(0);
+
+        const socket = io();
+        socket.emit('join', { role: 'production_employee', userId: currentUser.id });
+        socket.on('new_production_task', () => { loadTasks(); showToast('🏭 New production task assigned!', 'success'); });
+        socket.on('driver_arrived', (d) => { showToast(`🚛 Driver ${d.driverName || ''} arrived with delivery! Go collect the goods.`, 'success'); loadDeliveries(); });
+
+        function showSection(name, el) {
+            document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+            document.getElementById(`section-${name}`).style.display = 'block';
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (el) el.classList.add('active');
+            if (name === 'deliveries') loadDeliveries();
+            if (name === 'inventory') loadInventory();
+            if (name === 'tasks') loadTasks();
+            if (name === 'all') loadAllOrders();
+        }
+
+        // ===== INCOMING DELIVERIES =====
+        async function loadDeliveries() {
+            try {
+                const data = await api('/api/production/deliveries');
+                const deliveries = data.deliveries || [];
+
+                // Update badge
+                const badge = document.getElementById('deliveryBadge');
+                if (deliveries.length > 0) { badge.style.display = 'inline-block'; badge.textContent = deliveries.length; }
+                else { badge.style.display = 'none'; }
+
+                // Stats
+                document.getElementById('deliveryStats').innerHTML = `
+                    <div class="stat-box"><div class="num">${deliveries.length}</div><div class="label">⏳ Awaiting</div></div>
+                    <div class="stat-box"><div class="num">${deliveries.reduce((s, d) => s + (d.quantity_kg || 0), 0).toFixed(1)}</div><div class="label">📦 Total Kg</div></div>
+                    <div class="stat-box"><div class="num">${new Set(deliveries.map(d => d.driver_name)).size}</div><div class="label">🚛 Drivers</div></div>
+                    <div class="stat-box"><div class="num">${new Set(deliveries.map(d => d.item_name)).size}</div><div class="label">🧪 Item Types</div></div>
+                `;
+
+                if (deliveries.length === 0) {
+                    document.getElementById('deliveriesList').innerHTML = `
+                        <div class="empty-state" style="text-align:center;padding:60px;">
+                            <div style="font-size:60px;">🚛</div>
+                            <h3>No pending deliveries</h3>
+                            <p>When a driver completes a pickup, the goods will appear here for you to confirm receipt.</p>
+                        </div>`;
+                    return;
+                }
+
+                document.getElementById('deliveriesList').innerHTML = deliveries.map(d => `
+                    <div class="delivery-card">
+                        <div class="task-header">
+                            <div>
+                                <h3>📦 ${d.item_name}</h3>
+                                <div style="font-size:14px;color:var(--text-secondary);margin-top:6px;">
+                                    <strong>${d.quantity_kg} kg</strong> | From shop: <strong>${d.source_shop_name || 'Unknown'}</strong>
+                                </div>
+                                <div style="font-size:13px;color:var(--text-muted);margin-top:4px;">
+                                    🚛 Driver: <strong>${d.driver_name || 'Unknown'}</strong> ${d.driver_phone ? '📞 ' + d.driver_phone : ''}
+                                </div>
+                                <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">
+                                    🕐 Arrived: ${formatDate(d.received_at)}
+                                </div>
+                            </div>
+                            <span class="badge badge-received" style="font-size:14px;padding:6px 16px;">🟢 ARRIVED</span>
+                        </div>
+                        <div style="margin-top:16px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);">
+                            <p style="color:#f59e0b;font-size:13px;margin-bottom:10px;">⚠️ Go to the delivery bay, collect the goods, and confirm below:</p>
+                            <button class="btn-confirm" onclick="confirmDelivery(${d.id}, '${d.item_name.replace(/'/g, "\\'")}')">
+                                ✅ Goods Received — Store to Inventory
+                            </button>
+                        </div>
+                    </div>`).join('');
+            } catch (err) { showToast('Failed to load deliveries', 'error'); }
+        }
+
+        async function confirmDelivery(id, itemName) {
+            try {
+                const data = await api(`/api/production/deliveries/${id}/confirm`, { method: 'PUT' });
+                showToast(data.message || `"${itemName}" confirmed!`, 'success');
+                loadDeliveries();
+            } catch (err) { showToast(err.message || 'Failed to confirm', 'error'); }
+        }
+
+        // ===== INVENTORY =====
+        async function loadInventory() {
+            try {
+                const data = await api('/api/production/inventory');
+                const items = data.inventory || [];
+                if (items.length === 0) {
+                    document.getElementById('inventoryTable').innerHTML = '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-muted)">No items in inventory</td></tr>';
+                    return;
+                }
+                document.getElementById('inventoryTable').innerHTML = items.map(i => `
+                    <tr>
+                        <td><strong>${i.item_name}</strong></td>
+                        <td>${i.quantity_kg} kg</td>
+                        <td>${i.source_shop_name || '-'}</td>
+                        <td>${i.driver_name || '-'}</td>
+                        <td><span class="badge badge-${i.status}">${i.status}</span></td>
+                        <td>${formatDate(i.received_at)}</td>
+                    </tr>`).join('');
+            } catch (err) { showToast('Failed to load inventory', 'error'); }
+        }
+
+        // ===== MY TASKS =====
+        async function loadTasks() {
+            try {
+                const [tasksData, profileData] = await Promise.all([api('/api/production/tasks'), api('/api/production/profile')]);
+                const s = profileData.stats;
+                document.getElementById('taskStats').innerHTML = `
+                    <div class="stat-box"><div class="num">${s.pending}</div><div class="label">⏳ Pending</div></div>
+                    <div class="stat-box"><div class="num">${s.active}</div><div class="label">🏭 Active</div></div>
+                    <div class="stat-box"><div class="num">${s.completed}</div><div class="label">✅ Done</div></div>
+                    <div class="stat-box"><div class="num">${s.pending + s.active + s.completed}</div><div class="label">📊 Total</div></div>
+                `;
+                const tasks = tasksData.tasks;
+                if (tasks.length === 0) {
+                    document.getElementById('tasksList').innerHTML = '<div class="empty-state"><h3>No tasks yet</h3><p>Tasks will be assigned when items are sent to production</p></div>';
+                    return;
+                }
+                document.getElementById('tasksList').innerHTML = tasks.map(t => {
+                    let action = '';
+                    if (t.status === 'pending') action = `<button class="btn-start" onclick="startTask(${t.id})">▶️ Start Production</button>`;
+                    else if (t.status === 'in_production') action = `<button class="btn-complete" onclick="completeTask(${t.id})">✅ Complete Production</button>`;
+                    else action = '<span style="color:#22c55e;font-weight:600;">✅ Completed</span>';
+                    return `<div class="task-card">
+                        <div class="task-header"><h3>${t.predicted_product || t.item_name}</h3><span class="badge badge-${t.status}">${t.status.replace('_', ' ')}</span></div>
+                        <div style="font-size:13px;color:var(--text-secondary);margin-top:8px;">
+                            Raw: <strong>${t.item_name}</strong> (${t.total_kg}kg) | Recipe: ${t.recipe || 'Standard'} | Time: ${t.estimated_hours || '?'}h
+                        </div>
+                        <div style="margin-top:12px;">${action}</div>
+                    </div>`;
+                }).join('');
+            } catch (err) { showToast('Failed to load tasks', 'error'); }
+        }
+
+        async function startTask(id) { try { await api(`/api/production/tasks/${id}/start`, { method: 'PUT' }); showToast('Production started!', 'success'); loadTasks(); } catch (e) { showToast(e.message, 'error'); } }
+        async function completeTask(id) { try { await api(`/api/production/tasks/${id}/complete`, { method: 'PUT' }); showToast('Production completed!', 'success'); loadTasks(); } catch (e) { showToast(e.message, 'error'); } }
+
+        // ===== ALL ORDERS =====
+        async function loadAllOrders() {
+            try {
+                const data = await api('/api/production/all-orders');
+                if (!data.orders.length) { document.getElementById('allOrdersList').innerHTML = '<div class="empty-state"><h3>No orders</h3></div>'; return; }
+                document.getElementById('allOrdersList').innerHTML = data.orders.map(o => `
+                    <div class="task-card">
+                        <div class="task-header"><h3>${o.predicted_product || o.item_name}</h3><span class="badge badge-${o.status}">${o.status.replace('_', ' ')}</span></div>
+                        <div style="font-size:12px;color:var(--text-muted);margin-top:4px;">${o.total_kg}kg | Worker: ${o.assigned_to || 'Unassigned'}</div>
+                    </div>`).join('');
+            } catch (err) { showToast('Failed', 'error'); }
+        }
+
+        // Auto-refresh deliveries every 5 seconds
+        setInterval(() => {
+            if (document.getElementById('section-deliveries')?.style.display !== 'none') loadDeliveries();
+        }, 5000);
+        loadDeliveries();
+    </script>
+</body>
+
+</html>

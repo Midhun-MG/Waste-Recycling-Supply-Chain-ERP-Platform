@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Driver - GreenCycle</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .del-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .del-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .del-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-pending {
+            background: rgba(234, 179, 8, 0.15);
+            color: #eab308;
+        }
+
+        .badge-picked_up {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .badge-in_transit {
+            background: rgba(168, 85, 247, 0.15);
+            color: #a855f7;
+        }
+
+        .badge-delivered {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .gps-toggle {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 12px;
+            font-size: 13px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: #22c55e;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: #fff;
+            border-radius: 50%;
+            transition: 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            left: 22px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-gradient"></div>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2>GreenCycle</h2><span>WH DRIVER</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active"><span class="nav-icon">My Deliveries</span></div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">D</div>
+                    <div class="user-details">
+                        <h4 id="userName">Driver</h4><span>Warehouse</span>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </aside>
+        <main class="main-content">
+            <div class="page-header">
+                <h1>My Deliveries</h1>
+                <p>Transport packed products to warehouse with GPS tracking</p>
+            </div>
+            <div id="deliveriesList"></div>
+        </main>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/api.js"></script>
+    <script>
+        const currentUser = requireAuth('warehouse_driver');
+        if (!currentUser) { window.location.href = '/login.html'; }
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('userAvatar').textContent = currentUser.name.charAt(0);
+
+        const socket = io();
+        socket.emit('join', { role: 'warehouse_driver', userId: currentUser.id });
+
+        async function loadDeliveries() {
+            try {
+                const data = await api('/api/warehouse/driver/deliveries');
+                if (data.deliveries.length === 0) { document.getElementById('deliveriesList').innerHTML = '<div class="empty-state"><h3>No deliveries assigned</h3><p>Waiting for packing to complete</p></div>'; return; }
+
+                document.getElementById('deliveriesList').innerHTML = data.deliveries.map(d => {
+                    let actionHTML = '';
+                    if (d.status === 'pending') actionHTML = `<button class="btn btn-primary btn-sm" onclick="updateStatus(${d.id},'picked_up')">Pick Up</button>`;
+                    else if (d.status === 'picked_up') actionHTML = `<button class="btn btn-primary btn-sm" onclick="updateStatus(${d.id},'in_transit')">Start Transit (GPS ON)</button>`;
+                    else if (d.status === 'in_transit') actionHTML = `<button class="btn btn-primary btn-sm" onclick="updateStatus(${d.id},'delivered')">Mark Delivered</button>`;
+                    else actionHTML = '<span style="color:#22c55e;font-weight:600;">Delivered</span>';
+
+                    return `<div class="del-card">
+                        <div class="del-header"><h3>${d.product_name}</h3><span class="badge badge-${d.status}">${d.status.replace('_', ' ')}</span></div>
+                        <div style="font-size:13px;color:var(--text-secondary);">Quantity: <strong>${d.quantity_kg}kg</strong></div>
+                        ${d.status === 'in_transit' ? '<div class="gps-toggle"><div class="toggle-switch active"></div><span style="color:#22c55e;">GPS Active - Warehouse manager can see your location</span></div>' : ''}
+                        <div style="margin-top:12px;">${actionHTML}</div>
+                    </div>`;
+                }).join('');
+            } catch (err) { showToast('Failed to load deliveries', 'error'); }
+        }
+
+        async function updateStatus(id, status) {
+            try {
+                await api(`/api/warehouse/driver/deliveries/${id}/status`, { method: 'PUT', body: JSON.stringify({ status }) });
+                if (status === 'in_transit') {
+                    // Simulate GPS updates
+                    simulateGPS(id);
+                    showToast('In transit! GPS activated.', 'success');
+                } else {
+                    showToast(`Status: ${status.replace('_', ' ')}`, 'success');
+                }
+                loadDeliveries();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        function simulateGPS(deliveryId) {
+            // Simulate GPS movement toward warehouse
+            let lat = 11.0168 + (Math.random() * 0.02 - 0.01);
+            let lng = 76.9558 + (Math.random() * 0.02 - 0.01);
+            const targetLat = 11.0200, targetLng = 76.9600;
+
+            const interval = setInterval(async () => {
+                lat += (targetLat - lat) * 0.1;
+                lng += (targetLng - lng) * 0.1;
+                try {
+                    await api('/api/warehouse/driver/gps', { method: 'PUT', body: JSON.stringify({ delivery_id: deliveryId, lat, lng, gps_active: true }) });
+                } catch (e) { }
+
+                if (Math.abs(lat - targetLat) < 0.001) clearInterval(interval);
+            }, 5000);
+        }
+
+        loadDeliveries();
+        setInterval(loadDeliveries, 15000);
+    </script>
+</body>
+
+</html>

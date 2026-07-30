@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register — GreenCycle</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        .auth-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .auth-logo {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        .auth-header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--primary-light), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-header p {
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        .auth-card {
+            padding: 36px;
+        }
+
+        .role-toggle {
+            display: flex;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: var(--radius-sm);
+            padding: 4px;
+            margin-bottom: 28px;
+        }
+
+        .role-btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            font-family: inherit;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: var(--radius-xs);
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .role-btn.active {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 12px var(--primary-glow);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-actions {
+            margin-top: 28px;
+        }
+
+        .form-actions .btn {
+            width: 100%;
+            padding: 16px;
+            font-size: 16px;
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .auth-footer a {
+            color: var(--primary-light);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .auth-error {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            border-radius: var(--radius-xs);
+            padding: 12px 16px;
+            font-size: 14px;
+            color: #ef4444;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .map-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        @media (max-width: 480px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-gradient"></div>
+
+    <div class="auth-page">
+        <div class="auth-container">
+            <div class="auth-header">
+                <div class="auth-logo">♻️</div>
+                <h1>Create Account</h1>
+                <p>Join GreenCycle and start recycling today</p>
+            </div>
+
+            <div class="auth-card glass-card-static">
+                <div class="role-toggle">
+                    <button class="role-btn active" data-role="client">🏪 Shop Owner</button>
+                    <button class="role-btn" data-role="driver">🚛 Driver</button>
+                    <button class="role-btn" data-role="vehicle_manager">📊 Manager</button>
+                </div>
+
+                <div class="auth-error" id="errorMsg"></div>
+
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" class="form-input" id="name" placeholder="Your full name" required>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Email</label>
+                            <input type="email" class="form-input" id="email" placeholder="your@email.com" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Phone</label>
+                            <input type="tel" class="form-input" id="phone" placeholder="9876543210">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" class="form-input" id="password" placeholder="Min 6 characters" required
+                            minlength="6">
+                    </div>
+                    <div class="form-group" id="shopNameGroup">
+                        <label>🏪 Shop Name</label>
+                        <input type="text" class="form-input" id="shopName" placeholder="e.g. Ravi Fresh Vegetables">
+                    </div>
+                    <div class="form-group" id="vehicleTypeGroup" style="display:none;">
+                        <label>🚛 Vehicle Type</label>
+                        <select class="form-input" id="vehicleType">
+                            <option value="">Select your vehicle type</option>
+                            <option value="load_auto">🚜 Load Auto (up to 50 kg)</option>
+                            <option value="mini_truck">🚚 Mini Truck (up to 200 kg)</option>
+                            <option value="truck">🚛 Truck (up to 1000 kg)</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Address</label>
+                            <input type="text" class="form-input" id="address"
+                                placeholder="Your shop or pickup address">
+                        </div>
+                        <div class="form-group">
+                            <label>Pincode</label>
+                            <input type="text" class="form-input" id="pincode" placeholder="e.g. 600017" maxlength="6">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>📍 Set Location on Map (click to pin)</label>
+                        <div id="map" class="map-container map-container-small"></div>
+                        <p class="map-hint">Lat: <span id="latDisplay">13.0827</span> | Lng: <span
+                                id="lngDisplay">80.2707</span></p>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary" id="registerBtn">🚀 Create Account</button>
+                    </div>
+                </form>
+
+                <div class="auth-footer">
+                    Already have an account? <a href="/login.html">Login here</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="/js/api.js"></script>
+    <script>
+        let selectedRole = 'client';
+        let selectedLat = 13.0827;
+        let selectedLng = 80.2707;
+
+        // Role toggle
+        document.querySelectorAll('.role-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                selectedRole = btn.dataset.role;
+                // Toggle shop name visibility
+                const shopGroup = document.getElementById('shopNameGroup');
+                const vehicleGroup = document.getElementById('vehicleTypeGroup');
+                if (shopGroup) shopGroup.style.display = selectedRole === 'client' ? 'block' : 'none';
+                if (vehicleGroup) vehicleGroup.style.display = selectedRole === 'driver' ? 'block' : 'none';
+            });
+        });
+
+        // Also handle vehicle_manager role check from URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('role') === 'vehicle_manager') {
+            document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
+            document.querySelector('[data-role="vehicle_manager"]').classList.add('active');
+            selectedRole = 'vehicle_manager';
+            document.getElementById('shopNameGroup').style.display = 'none';
+        }
+
+        // Map
+        const map = L.map('map').setView([13.0827, 80.2707], 12);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(map);
+
+        let marker = L.marker([13.0827, 80.2707], { draggable: true }).addTo(map);
+
+        map.on('click', (e) => {
+            selectedLat = e.latlng.lat;
+            selectedLng = e.latlng.lng;
+            marker.setLatLng(e.latlng);
+            document.getElementById('latDisplay').textContent = selectedLat.toFixed(4);
+            document.getElementById('lngDisplay').textContent = selectedLng.toFixed(4);
+        });
+
+        marker.on('dragend', () => {
+            const pos = marker.getLatLng();
+            selectedLat = pos.lat;
+            selectedLng = pos.lng;
+            document.getElementById('latDisplay').textContent = selectedLat.toFixed(4);
+            document.getElementById('lngDisplay').textContent = selectedLng.toFixed(4);
+        });
+
+        // Fix map rendering in glassmorphism container
+        setTimeout(() => map.invalidateSize(), 500);
+
+        // Register submit
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorMsg = document.getElementById('errorMsg');
+            const registerBtn = document.getElementById('registerBtn');
+
+            errorMsg.style.display = 'none';
+            registerBtn.disabled = true;
+            registerBtn.textContent = '⏳ Creating account...';
+
+            try {
+                const data = await api('/api/auth/register', {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        name: document.getElementById('name').value,
+                        email: document.getElementById('email').value,
+                        password: document.getElementById('password').value,
+                        role: selectedRole,
+                        phone: document.getElementById('phone').value,
+                        shop_name: document.getElementById('shopName').value,
+                        vehicle_type: document.getElementById('vehicleType').value || null,
+                        address: document.getElementById('address').value,
+                        pincode: document.getElementById('pincode').value,
+                        lat: selectedLat,
+                        lng: selectedLng
+                    })
+                });
+
+                setToken(data.token);
+                setUser(data.user);
+                window.location.href = `/${data.user.role}/dashboard.html`;
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.style.display = 'block';
+                registerBtn.disabled = false;
+                registerBtn.textContent = '🚀 Create Account';
+            }
+        });
+    </script>
+</body>
+
+</html>

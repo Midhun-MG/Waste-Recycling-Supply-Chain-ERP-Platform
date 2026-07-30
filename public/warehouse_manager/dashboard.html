@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Manager - GreenCycle</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-box {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-box .num {
+            font-size: 28px;
+            font-weight: 800;
+            color: #22c55e;
+        }
+
+        .stat-box .label {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .inv-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .inv-table th,
+        .inv-table td {
+            padding: 12px 14px;
+            text-align: left;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            font-size: 13px;
+        }
+
+        .inv-table th {
+            font-size: 11px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-green {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .badge-blue {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .badge-yellow {
+            background: rgba(234, 179, 8, 0.15);
+            color: #eab308;
+        }
+
+        .badge-purple {
+            background: rgba(168, 85, 247, 0.15);
+            color: #a855f7;
+        }
+
+        .gps-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            margin-bottom: 12px;
+        }
+
+        .gps-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .gps-dot.active {
+            background: #22c55e;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        .gps-dot.inactive {
+            background: #64748b;
+        }
+
+        .order-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius-sm);
+            padding: 20px;
+            margin-bottom: 12px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-gradient"></div>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2>GreenCycle</h2><span>WAREHOUSE</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="showSection('dashboard', this)"><span
+                        class="nav-icon">Dashboard</span>
+                </div>
+                <div class="nav-item" onclick="showSection('inventory', this)"><span class="nav-icon">📦
+                        Inventory</span>
+                </div>
+                <div class="nav-item" onclick="showSection('stocks', this)"><span class="nav-icon">📋 Stocks</span>
+                </div>
+                <div class="nav-item" onclick="showSection('incoming', this)"><span class="nav-icon">🚛 Incoming
+                        (GPS)</span>
+                </div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">W</div>
+                    <div class="user-details">
+                        <h4 id="userName">Manager</h4><span>Warehouse</span>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </aside>
+        <main class="main-content">
+            <section id="section-dashboard">
+                <div class="page-header">
+                    <h1>Warehouse Dashboard</h1>
+                    <p>Stock management, incoming trucks, and customer orders</p>
+                </div>
+                <div class="stats-row" id="statsRow"></div>
+            </section>
+            <section id="section-inventory" style="display:none;">
+                <div class="page-header">
+                    <h1>📦 Warehouse Inventory</h1>
+                    <p>Aggregated product inventory with packing details per employee</p>
+                </div>
+                <div class="stats-row" id="invSummary"></div>
+                <div class="glass-card-static" style="margin-bottom:24px;">
+                    <h3 style="margin:0 0 16px;">Products in Warehouse</h3>
+                    <div style="overflow-x:auto;" id="invTable"></div>
+                </div>
+                <div class="glass-card-static" style="margin-bottom:24px;">
+                    <h3 style="margin:0 0 16px;">Packing Details (Who Packed What)</h3>
+                    <div id="packingDetails"></div>
+                </div>
+                <div class="glass-card-static">
+                    <h3 style="margin:0 0 16px;">Pending Handovers</h3>
+                    <div id="pendingHandovers"></div>
+                </div>
+            </section>
+            <section id="section-stocks" style="display:none;">
+                <div class="page-header">
+                    <h1>Warehouse Stocks</h1>
+                    <p>All products in warehouse</p>
+                </div>
+                <div class="glass-card-static" style="overflow-x:auto;" id="stocksList"></div>
+            </section>
+            <section id="section-incoming" style="display:none;">
+                <div class="page-header">
+                    <h1>Incoming Deliveries</h1>
+                    <p>Track trucks with GPS</p>
+                </div>
+                <div id="incomingList"></div>
+            </section>
+        </main>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/api.js"></script>
+
+    <script>
+        const currentUser = requireAuth('warehouse_manager');
+        if (!currentUser) { window.location.href = '/login.html'; }
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('userAvatar').textContent = currentUser.name.charAt(0);
+        const socket = io(); socket.emit('join', { role: 'warehouse_manager', userId: currentUser.id });
+
+        function showSection(name, el) {
+            document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+            document.getElementById(`section-${name}`).style.display = 'block';
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (el) el.classList.add('active');
+            if (name === 'dashboard') loadStats();
+            if (name === 'inventory') loadInventory();
+            if (name === 'stocks') loadStocks();
+            if (name === 'incoming') loadIncoming();
+        }
+
+        async function loadStats() {
+            try {
+                const data = await api('/api/warehouse/stats');
+                const s = data.stats;
+                document.getElementById('statsRow').innerHTML = `
+                    <div class="stat-box"><div class="num">${s.in_stock}</div><div class="label">Products In Stock</div></div>
+                    <div class="stat-box"><div class="num">${s.total_kg} kg</div><div class="label">Total Stock Weight</div></div>
+                    <div class="stat-box"><div class="num">${s.incoming_trucks}</div><div class="label">Incoming Trucks</div></div>
+                    <div class="stat-box"><div class="num">${s.pending_orders}</div><div class="label">Pending Orders</div></div>
+                    <div class="stat-box"><div class="num">${s.delivered_orders}</div><div class="label">Delivered</div></div>
+                    <div class="stat-box"><div class="num">Rs.${(s.total_revenue || 0).toLocaleString()}</div><div class="label">Revenue</div></div>
+                `;
+            } catch (err) { showToast('Failed to load stats', 'error'); }
+        }
+
+        async function loadStocks() {
+            try {
+                const data = await api('/api/warehouse/stocks');
+                if (data.stocks.length === 0) { document.getElementById('stocksList').innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">No stocks yet</div>'; return; }
+                document.getElementById('stocksList').innerHTML = `<table class="inv-table"><thead><tr><th>Product</th><th>Batch</th><th>Qty (kg)</th><th>Price/kg</th><th>Location</th><th>Status</th></tr></thead><tbody>${data.stocks.map(s => `<tr><td><strong>${s.product_name}</strong></td><td>${s.batch_no || '-'}</td><td style="font-weight:700;color:#22c55e">${s.quantity_kg} kg</td><td>Rs.${s.price_per_kg || 0}</td><td>${s.location || 'Main'}</td><td><span class="badge badge-${s.status === 'in_stock' ? 'green' : 'yellow'}">${s.status}</span></td></tr>`).join('')}</tbody></table>`;
+            } catch (err) { showToast('Failed to load stocks', 'error'); }
+        }
+
+        async function loadIncoming() {
+            try {
+                const data = await api('/api/warehouse/incoming');
+                if (data.deliveries.length === 0) { document.getElementById('incomingList').innerHTML = '<div class="empty-state" style="padding:30px;text-align:center;color:var(--text-muted)">No incoming deliveries</div>'; return; }
+                document.getElementById('incomingList').innerHTML = data.deliveries.map(d => {
+                    const statusColor = d.status === 'delivered' ? 'green' : d.status === 'in_transit' ? 'blue' : 'yellow';
+                    return `<div class="order-card"><div style="display:flex;justify-content:space-between;align-items:center"><div><h4 style="margin:0">${d.product_name} (${d.quantity_kg}kg)</h4><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Driver: ${d.driver_name || 'N/A'} ${d.driver_phone ? '� ' + d.driver_phone : ''}</div></div><div style="text-align:right"><span class="badge badge-${statusColor}">${(d.status || 'pending').toUpperCase()}</span>${d.status === 'delivered' ? `<div style="margin-top:8px"><button style="background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600" onclick="receiveDelivery(${d.id})">? Confirm Received</button></div>` : ''}</div></div></div>`;
+                }).join('');
+            } catch (err) { showToast('Failed to load incoming', 'error'); }
+        }
+
+        async function receiveDelivery(id) { try { await api(`/api/warehouse/incoming/${id}/receive`, { method: 'PUT' }); showToast('Delivery received & added to stock!', 'success'); loadIncoming(); loadStocks(); loadStats(); } catch (e) { showToast(e.message, 'error'); } }
+
+        async function loadInventory() {
+            try {
+                const data = await api('/api/warehouse/inventory');
+                const inv = data.inventory || [];
+                const packing = data.packing_by_product || {};
+                const pending = data.pending_handovers || [];
+                const sum = data.summary || {};
+                document.getElementById('invSummary').innerHTML = `
+                    <div class="stat-box"><div class="num">${sum.total_products || 0}</div><div class="label">Product Types</div></div>
+                    <div class="stat-box"><div class="num">${(sum.total_kg || 0).toFixed(1)} kg</div><div class="label">Total Stock</div></div>
+                    <div class="stat-box"><div class="num">${sum.total_batches || 0}</div><div class="label">Batches</div></div>
+                    <div class="stat-box"><div class="num">${pending.length}</div><div class="label">Pending Handovers</div></div>
+                `;
+                if (inv.length === 0) {
+                    document.getElementById('invTable').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">No products yet</div>';
+                } else {
+                    document.getElementById('invTable').innerHTML = `<table class="inv-table"><thead><tr><th>Product</th><th>Total Qty</th><th>Batches</th><th>Location</th><th>First Received</th><th>Last Received</th></tr></thead><tbody>${inv.map(i => `<tr><td><strong>${i.product_name}</strong></td><td style="font-weight:700;color:#22c55e">${(i.total_kg || 0).toFixed(1)} kg</td><td>${i.batch_count}</td><td>${i.locations || 'Main'}</td><td style="font-size:12px">${i.first_received || 'N/A'}</td><td style="font-size:12px">${i.last_received || 'N/A'}</td></tr>`).join('')}</tbody></table>`;
+                }
+                const prodNames = Object.keys(packing);
+                if (prodNames.length === 0) {
+                    document.getElementById('packingDetails').innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted)">No packing data</div>';
+                } else {
+                    document.getElementById('packingDetails').innerHTML = prodNames.map(name => {
+                        const p = packing[name];
+                        return `<div style="background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:12px;padding:16px;margin-bottom:12px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><h4 style="margin:0">${name}</h4><div><span class="badge badge-green">${p.total_boxes} boxes</span> <span class="badge badge-blue">${p.total_kg} kg</span></div></div><table class="inv-table" style="margin:0"><thead><tr><th>Employee</th><th>Boxes</th><th>Qty</th><th>Status</th></tr></thead><tbody>${p.employees.map(e => `<tr><td>${e.name}</td><td style="font-weight:700">${e.boxes}</td><td>${e.kg} kg</td><td><span class="badge badge-${e.status === 'dispatched' ? 'green' : 'yellow'}">${e.status}</span></td></tr>`).join('')}</tbody></table></div>`;
+                    }).join('');
+                }
+                if (pending.length === 0) {
+                    document.getElementById('pendingHandovers').innerHTML = '<div style="text-align:center;padding:16px;color:#22c55e;font-weight:600">All packages received!</div>';
+                } else {
+                    document.getElementById('pendingHandovers').innerHTML = pending.map(h => `<div style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:var(--glass-bg);border:1px solid var(--glass-border);border-radius:10px;margin-bottom:8px"><div><strong>${h.product_name}</strong> (${h.quantity_kg} kg)<div style="font-size:12px;color:var(--text-muted)">Driver: ${h.driver_name || 'N/A'}</div></div><span class="badge badge-yellow">${(h.status || 'pending').replace('_',' ')}</span></div>`).join('');
+                }
+            } catch (err) { showToast('Failed to load inventory', 'error'); }
+        }
+
+        socket.on('delivery_status_update', function(data) {
+            showToast(data.message || 'Delivery update', data.status === 'delivered' ? 'success' : 'info');
+            loadIncoming(); loadStats(); loadStocks();
+        });
+        socket.on('new_sales_order', d => { showToast(d.message, 'info'); loadStats(); });
+        socket.on('payment_received', d => { showToast(d.message, 'success'); loadStats(); });
+
+        setInterval(() => { if (document.getElementById('section-incoming')?.style.display !== 'none') loadIncoming(); }, 10000);
+        loadStats();
+    </script>
+</body>
+</html>

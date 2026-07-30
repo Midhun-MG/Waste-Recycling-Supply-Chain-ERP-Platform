@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Packing Employee - GreenCycle</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .task-card {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .task-header h3 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-pending {
+            background: rgba(234, 179, 8, 0.15);
+            color: #eab308;
+        }
+
+        .badge-packing {
+            background: rgba(59, 130, 246, 0.15);
+            color: #3b82f6;
+        }
+
+        .badge-packed {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+
+        .badge-dispatched {
+            background: rgba(168, 85, 247, 0.15);
+            color: #a855f7;
+        }
+
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-box {
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-box .num {
+            font-size: 32px;
+            font-weight: 800;
+            color: #22c55e;
+        }
+
+        .stat-box .label {
+            font-size: 13px;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .progress-bar {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin: 10px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 5px;
+            background: linear-gradient(90deg, #3b82f6, #22c55e);
+            transition: width 0.5s;
+        }
+
+        .box-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin: 12px 0;
+        }
+
+        .box-item {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .box-item.packed {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid #22c55e;
+            color: #22c55e;
+        }
+
+        .box-item.remaining {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--text-muted);
+        }
+
+        .btn-pack {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #fff;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .btn-pack:hover {
+            transform: scale(1.02);
+        }
+
+        @media (max-width: 768px) {
+            .stats-row {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-gradient"></div>
+    <div class="dashboard-layout">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <h2>GreenCycle</h2><span>PACKING</span>
+            </div>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="showSection('tasks', this)"><span class="nav-icon">📦 My Tasks</span>
+                </div>
+                <div class="nav-item" onclick="showSection('available', this)"><span class="nav-icon">🆕 Available
+                        Tasks</span></div>
+                <div class="nav-item" onclick="showSection('all', this)"><span class="nav-icon">📋 All Orders</span></div>
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">P</div>
+                    <div class="user-details">
+                        <h4 id="userName">Employee</h4><span>Packing</span>
+                    </div>
+                </div>
+                <button class="btn-logout" onclick="logout()">Logout</button>
+            </div>
+        </aside>
+        <main class="main-content">
+            <section id="section-tasks">
+                <div class="page-header">
+                    <h1>📦 My Packing Tasks</h1>
+                    <p>AI auto-assigns tasks when production completes. Pack 100 items per box!</p>
+                </div>
+                <div class="stats-row" id="statsRow"></div>
+                <div id="tasksList"></div>
+            </section>
+            <section id="section-available" style="display:none;">
+                <div class="page-header">
+                    <h1>🆕 Available Tasks</h1>
+                    <p>Unassigned packing tasks you can accept</p>
+                </div>
+                <div id="availableList"></div>
+            </section>
+            <section id="section-all" style="display:none;">
+                <div class="page-header">
+                    <h1>All Packing Orders</h1>
+                </div>
+                <div id="allOrdersList"></div>
+            </section>
+        </main>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/js/api.js"></script>
+    <script>
+        const currentUser = requireAuth('packing_employee');
+        if (!currentUser) { window.location.href = '/login.html'; }
+        document.getElementById('userName').textContent = currentUser.name;
+        document.getElementById('userAvatar').textContent = currentUser.name.charAt(0);
+
+        const socket = io();
+        socket.emit('join', { role: 'packing_employee', userId: currentUser.id });
+        socket.on('new_packing_task', () => { loadTasks(); showToast('New packing task assigned!', 'success'); });
+
+        function showSection(name, el) {
+            document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+            document.getElementById(`section-${name}`).style.display = 'block';
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            if (el) el.classList.add('active');
+            if (name === 'tasks') loadTasks();
+            if (name === 'available') loadAvailable();
+            if (name === 'all') loadAllOrders();
+        }
+
+        async function loadTasks() {
+            try {
+                const [tasksData, profileData] = await Promise.all([api('/api/packing/tasks'), api('/api/packing/profile')]);
+                const s = profileData.stats;
+                document.getElementById('statsRow').innerHTML = `
+                    <div class="stat-box"><div class="num">${s.pending}</div><div class="label">⏳ Pending</div></div>
+                    <div class="stat-box"><div class="num">${s.active}</div><div class="label">📦 Packing</div></div>
+                    <div class="stat-box"><div class="num">${s.completed}</div><div class="label">✅ Completed</div></div>
+                    <div class="stat-box"><div class="num">${s.total_boxes}</div><div class="label">📦 Total Boxes</div></div>
+                `;
+
+                const tasks = tasksData.tasks;
+                if (tasks.length === 0) { document.getElementById('tasksList').innerHTML = '<div class="empty-state"><h3>No tasks assigned yet</h3><p>AI will assign tasks when production completes</p></div>'; return; }
+
+                document.getElementById('tasksList').innerHTML = tasks.map(t => {
+                    const totalBoxes = t.total_items ? Math.ceil(t.total_items / (t.items_per_box || 100)) : 1;
+                    const boxesPacked = t.boxes_packed || 0;
+                    const remaining = totalBoxes - boxesPacked;
+                    const progress = totalBoxes > 0 ? Math.min(100, (boxesPacked / totalBoxes) * 100) : 0;
+
+                    let actionHTML = '';
+                    if (t.status === 'pending') {
+                        actionHTML = `<button class="btn-pack" onclick="startPacking(${t.id})">▶️ Start Packing</button>`;
+                    } else if (t.status === 'packing') {
+                        actionHTML = `<button class="btn-pack" onclick="completeBox(${t.id})">📦 Complete Box #${boxesPacked + 1} (100 items)</button>`;
+                    } else if (t.status === 'packed') {
+                        actionHTML = '<span style="color:#22c55e;font-weight:600;font-size:15px;">✅ All Packed — Sent to Warehouse</span>';
+                    } else {
+                        actionHTML = '<span style="color:#a855f7;font-weight:600;">🏪 In Warehouse</span>';
+                    }
+
+                    // Box visual grid
+                    let boxHTML = '<div class="box-grid">';
+                    for (let i = 1; i <= Math.min(totalBoxes, 30); i++) {
+                        boxHTML += `<div class="box-item ${i <= boxesPacked ? 'packed' : 'remaining'}">${i <= boxesPacked ? '✓' : i}</div>`;
+                    }
+                    if (totalBoxes > 30) boxHTML += `<div class="box-item remaining">+${totalBoxes - 30}</div>`;
+                    boxHTML += '</div>';
+
+                    return `<div class="task-card">
+                        <div class="task-header"><h3>${t.product_name}</h3><span class="badge badge-${t.status}">${t.status}</span></div>
+                        <div style="font-size:13px;color:var(--text-secondary);margin-top:8px;">
+                            Quantity: <strong>${t.quantity_kg} kg</strong> | Total Items: <strong>${t.total_items || 0}</strong> | Items/Box: <strong>${t.items_per_box || 100}</strong>
+                        </div>
+                        <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">
+                            From: ${t.source_raw_item || 'N/A'} → Product: ${t.predicted_product || t.product_name}
+                        </div>
+                        <div style="margin-top:12px;font-size:14px;font-weight:600;">
+                            📦 Boxes: ${boxesPacked} / ${totalBoxes} packed <span style="color:${remaining > 0 ? '#f59e0b' : '#22c55e'}">(${remaining} remaining)</span>
+                        </div>
+                        <div class="progress-bar"><div class="progress-fill" style="width:${progress}%"></div></div>
+                        ${boxHTML}
+                        <div style="margin-top:16px;">${actionHTML}</div>
+                    </div>`;
+                }).join('');
+            } catch (err) { showToast('Failed to load tasks', 'error'); }
+        }
+
+        async function startPacking(id) {
+            try { await api(`/api/packing/tasks/${id}/start`, { method: 'PUT' }); showToast('Packing started! Pack 100 items per box.', 'success'); loadTasks(); }
+            catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function completeBox(id) {
+            try {
+                const data = await api(`/api/packing/tasks/${id}/complete-box`, { method: 'PUT' });
+                showToast(data.message, data.all_done ? 'success' : 'info');
+                loadTasks();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function loadAllOrders() {
+            try {
+                const data = await api('/api/packing/all-orders');
+                if (data.orders.length === 0) { document.getElementById('allOrdersList').innerHTML = '<div class="empty-state"><h3>No orders</h3></div>'; return; }
+                document.getElementById('allOrdersList').innerHTML = data.orders.map(o => {
+                    const totalBoxes = o.total_items ? Math.ceil(o.total_items / (o.items_per_box || 100)) : 1;
+                    return `<div class="task-card">
+                        <div class="task-header"><h3>${o.product_name}</h3><span class="badge badge-${o.status}">${o.status}</span></div>
+                        <div style="font-size:13px;color:var(--text-secondary);">${o.quantity_kg}kg | Assigned: ${o.assigned_to || 'Unassigned'} | 📦 ${o.boxes_packed || 0}/${totalBoxes} boxes</div>
+                    </div>`;
+                }).join('');
+            } catch (err) { showToast('Failed to load orders', 'error'); }
+        }
+
+        async function loadAvailable() {
+            try {
+                const data = await api('/api/packing/available');
+                const tasks = data.tasks;
+                if (tasks.length === 0) {
+                    document.getElementById('availableList').innerHTML = '<div class="empty-state"><h3>No available tasks</h3><p>All tasks are currently assigned. Check back later!</p></div>';
+                    return;
+                }
+                document.getElementById('availableList').innerHTML = tasks.map(t => {
+                    const totalBoxes = t.total_items ? Math.ceil(t.total_items / (t.items_per_box || 100)) : 1;
+                    return `<div class="task-card" style="border-left: 3px solid #f59e0b;">
+                        <div class="task-header">
+                            <h3>${t.product_name}</h3>
+                            <span class="badge badge-pending">Available</span>
+                        </div>
+                        <div style="font-size:13px;color:var(--text-secondary);margin-top:8px;">
+                            Quantity: <strong>${t.quantity_kg} kg</strong> | ${totalBoxes} boxes to pack | ${t.total_items || 0} items
+                        </div>
+                        <div style="font-size:13px;color:var(--text-secondary);margin-top:4px;">
+                            Source: ${t.source_item || 'N/A'} → Product: ${t.product_name}
+                        </div>
+                        <div style="margin-top:14px;">
+                            <button class="btn-pack" style="background:linear-gradient(135deg,#f59e0b,#d97706);" onclick="acceptTask(${t.id})">✋ Accept This Task</button>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (err) { showToast('Failed to load available tasks', 'error'); }
+        }
+
+        async function acceptTask(id) {
+            try {
+                const data = await api(`/api/packing/tasks/${id}/accept`, { method: 'PUT' });
+                showToast(data.message, 'success');
+                loadTasks(); loadAvailable();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        setInterval(() => { if (document.getElementById('section-tasks')?.style.display !== 'none') loadTasks(); }, 5000);
+        loadTasks();
+    </script>
+</body>
+
+</html>
